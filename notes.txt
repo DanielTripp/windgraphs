@@ -2,3 +2,9 @@ http://widget.windguru.cz/int/widget_json.php?callback=jQuery1830444104244324757
 
 http://widget.windguru.cz/int/widget_json.php?s=64&m=3&lng=en
 
+GUST
+WINDSPD
+
+hr_h
+hr_weekday
+
