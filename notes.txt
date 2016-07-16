@@ -1,0 +1,4 @@
+http://widget.windguru.cz/int/widget_json.php?callback=jQuery18304441042443247576_1468687081941&url=file%3A%2F%2F%2FC%3A%2Fcygwin%2Ftmp%2Fwindguru.html&hostname=&s=64&m=3&lng=en&_=1468687082240
+
+http://widget.windguru.cz/int/widget_json.php?s=64&m=3&lng=en
+
