@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-import urllib2, json, pprint, re, datetime
+import sys, urllib2, json, pprint, re, datetime
 import BeautifulSoup
 
 def wf_get_web_response():
@@ -43,7 +43,7 @@ def wf_parse_web_response(web_response_str_):
 			daytetyme = datetime.datetime.strptime('%s %d %s:00' % (dayte, cur_year, tyme), '%b %d %Y %H:%M')
 			print daytetyme, windspeed 
 
-def wgfrontpage_get_web_response():
+def wg_get_web_response():
 	if 0:
 		url = 'http://www.windguru.cz/int/index.php?sc=64'
 		r = urllib2.urlopen(url).read()
@@ -55,8 +55,10 @@ def wgfrontpage_get_web_response():
 			r = fin.read()
 	return r
 
-def wgfrontpage_get_forecast_windspeed_from_web_response(web_response_str_, day_of_week_, hour_):
-	desired_hourstr = '%02d' % hour_ 
+def to_ints(strs_):
+	return [int(x) for x in strs_]
+
+def wg_parse_web_response(web_response_str_):
 	soup = BeautifulSoup.BeautifulSoup(web_response_str_)
 	# models: GFS = 3, NAM = 4, HRW = 38 
 	desired_model = '3'
@@ -68,53 +70,29 @@ def wgfrontpage_get_forecast_windspeed_from_web_response(web_response_str_, day_
 				parsed_data = json.loads(json_str)
 				if desired_model in parsed_data['fcst']:
 					data = parsed_data['fcst'][desired_model]
-					windspeed = data['WINDSPD']
-					windgusts = data['GUST']
-					days_of_week = data['hr_weekday']
-					hours = data['hr_h']
-					for i, (day_of_week, hour) in enumerate(zip(days_of_week, hours)):
-						if day_of_week == day_of_week_ and hour == desired_hourstr:
-							break
-					else:
-						raise Exception('day/hour not found')
-					return windspeed[i]
+					retrieved_datetime = data['update_last'].split(',')[1].lstrip()
+					retrieved_datetime = ' '.join(retrieved_datetime.split(' ', 3)[:3])
+					retrieved_datetime = datetime.datetime.strptime(retrieved_datetime, '%d %b %Y')
+					retrieved_year = retrieved_datetime.year
+					retrieved_month = retrieved_datetime.month
+					retrieved_day = retrieved_datetime.day
+					windspeeds = to_ints(data['WINDSPD'])
+					windgusts = to_ints(data['GUST'])
+					days = to_ints(data['hr_d'])
+					hours = to_ints(data['hr_h'])
+					assert len(windspeeds) == len(windgusts) == len(days) == len(hours) 
+					for day, hour, windspeed in zip(days, hours, windspeeds):
+						month = (retrieved_month if day >= retrieved_day else retrieved_month+1)
+						daytetyme = datetime.datetime.strptime('%02d-%02d %02d:00 %d' % (month, day, hour, retrieved_year), '%m-%d %H:%M %Y')
+						print daytetyme
+				break
 
-def wgfrontpage_get_forecast_windspeed(day_of_week_, hour_):
-	web_response = wgfrontpage_get_web_response()
-	return wgfrontpage_get_forecast_windspeed_from_web_response(web_response, day_of_week_, hour_)
+def wg_get_forecast():
+	web_response = wg_get_web_response()
+	return wg_parse_web_response(web_response)
 
-def wgwidget_get_web_response():
-	if 1:
-		url = 'http://widget.windguru.cz/int/widget_json.php?s=64&m=3&lng=en'
-		r = urllib2.urlopen(url).read()
-		r = r.strip('(').strip(')')
-		if 0:
-			with open('d-test-predictions-3', 'w') as fout:
-				fout.write(r)
-	else:
-		with open('d-test-predictions-3') as fin:
-			r = fin.read()
-	return r
+if __name__ == '__main__':
 
-def wgwidget_get_forecast_windspeed_from_web_response(web_response_str_, day_of_week_, hour_):
-	parsed_response = json.loads(web_response_str_)
-	data = parsed_response['fcst']['fcst']['3']
-	windspeed = data['WINDSPD']
-	windgusts = data['GUST']
-	days_of_week = data['hr_weekday']
-	hours = data['hr_h']
-	for i, (day_of_week, hour) in enumerate(zip(days_of_week, hours)):
-		if day_of_week == day_of_week_ and hour == hour_:
-			break
-	else:
-		raise Exception('day/hour not found')
-	return windspeed[i]
-	#pprint.pprint(days_of_week)
-
-def wgwidget_get_forecast_windspeed(day_of_week_, hour_):
-	web_response = wgwidget_get_web_response()
-	return wgwidget_get_forecast_windspeed_from_web_response(web_response, day_of_week_, hour_)
-
-print wf_get_forecast()
+	print wg_get_forecast()
 
 

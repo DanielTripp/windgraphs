@@ -8,3 +8,6 @@ WINDSPD
 hr_h
 hr_weekday
 
+
+windfinder: eg. got 85 wind speeds 
+
