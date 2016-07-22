@@ -91,8 +91,39 @@ def wg_get_forecast():
 	web_response = wg_get_web_response()
 	return wg_parse_web_response(web_response)
 
+def get_current_conditions_web_response():
+	if 1:
+		with open('d-current-conditions') as fin:
+			r = fin.read()
+		return r
+	url = 'http://atm.navcanada.ca/atm/iwv/CYTZ'
+	r = urllib2.urlopen(url).read()
+	if 0:
+		with open('d-current-conditions', 'w') as fout:
+			fout.write(r)
+	return r
+
+def parse_current_conditions_web_response(web_response_):
+	soup = BeautifulSoup.BeautifulSoup(web_response_)
+	wind = None
+	gust = None
+	for x in soup.findAll('td', {'class': 'stat-cell'}):
+		for content in x.contents:
+			if 'Gusting' in content:
+				gust = x.span.string
+			elif 'Wind Speed' in content:
+				wind = x.span.string
+	if gust == '--':
+		gust = wind
+	wind = int(wind)
+	gust = int(gust)
+	print wind, gust 
+
+def get_current_conditions():
+	web_response = get_current_conditions_web_response()
+	parse_current_conditions_web_response(web_response)
+
 if __name__ == '__main__':
 
-	wg_get_forecast()
-
+	get_current_conditions()
 
