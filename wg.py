@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 import sys, urllib2, json, pprint, re, datetime
+import dateutil.parser, dateutil.tz
 import BeautifulSoup
 
 def wf_get_web_response():
@@ -113,11 +114,14 @@ def parse_current_conditions_web_response(web_response_):
 				gust = x.span.string
 			elif 'Wind Speed' in content:
 				wind = x.span.string
+			elif 'Updated' in content:
+				time_retrieved = x.span.string
 	if gust == '--':
 		gust = wind
+	time_retrieved = dateutil.parser.parse(time_retrieved).astimezone(dateutil.tz.tzlocal())
 	wind = int(wind)
 	gust = int(gust)
-	print wind, gust 
+	print time_retrieved, wind, gust
 
 def get_current_conditions():
 	web_response = get_current_conditions_web_response()
