@@ -125,5 +125,6 @@ def get_current_conditions():
 
 if __name__ == '__main__':
 
-	get_current_conditions()
+	pass
+
 
