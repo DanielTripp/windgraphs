@@ -84,7 +84,7 @@ def wg_parse_web_response(web_response_str_):
 					for day, hour, windspeed in zip(days, hours, windspeeds):
 						month = (retrieved_month if day >= retrieved_day else retrieved_month+1)
 						daytetyme = datetime.datetime.strptime('%02d-%02d %02d:00 %d' % (month, day, hour, retrieved_year), '%m-%d %H:%M %Y')
-						print daytetyme
+						print daytetyme, windspeed 
 				break
 
 def wg_get_forecast():
@@ -93,6 +93,6 @@ def wg_get_forecast():
 
 if __name__ == '__main__':
 
-	print wg_get_forecast()
+	wg_get_forecast()
 
 

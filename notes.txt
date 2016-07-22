@@ -8,6 +8,7 @@ WINDSPD
 hr_h
 hr_weekday
 
+remember to convert from/to knots 
 
-windfinder: eg. got 85 wind speeds 
+"forecast skill" 
 
