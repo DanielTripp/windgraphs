@@ -1,10 +1,10 @@
 #!/usr/bin/env python
 
 import sys
-import wg
+import windgraphs
 
 if __name__ == '__main__':
 
-	wg.get_current_conditions()
+	windgraphs.get_current_conditions()
 
 
