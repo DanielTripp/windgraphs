@@ -8,6 +8,10 @@ from misc import *
 
 PASSWORD = file_to_string(os.path.expanduser('~/.windgraphs/DB_PASSWORD')).strip()
 
+DEV = os.path.exists('DEV')
+DEV_READ_FROM_FILES = DEV and 0
+DEV_WRITE_TO_FILES = DEV and 0
+
 g_db_conn = None
 g_lock = threading.RLock()
 
@@ -48,27 +52,27 @@ def db_conn():
 	return g_db_conn
 
 def wfsuper_get_web_response():
-	if 0:
-		url = 'https://www.windfinder.com/weatherforecast/toronto_island'
-		r = urllib2.urlopen(url).read()
-		if 1:
-			with open('d-test-predictions-wfsuper', 'w') as fout:
-				fout.write(r)
-	else:
+	if DEV_READ_FROM_FILES:
 		with open('d-test-predictions-wfsuper') as fin:
 			r = fin.read()
+	else:
+		url = 'https://www.windfinder.com/weatherforecast/toronto_island'
+		r = urllib2.urlopen(url).read()
+		if DEV_WRITE_TO_FILES:
+			with open('d-test-predictions-wfsuper', 'w') as fout:
+				fout.write(r)
 	return r
 
 def wfreg_get_web_response():
-	if 0:
-		url = 'https://www.windfinder.com/forecast/toronto_island'
-		r = urllib2.urlopen(url).read()
-		if 1:
-			with open('d-test-predictions-wfreg', 'w') as fout:
-				fout.write(r)
-	else:
+	if DEV_READ_FROM_FILES:
 		with open('d-test-predictions-wfreg') as fin:
 			r = fin.read()
+	else:
+		url = 'https://www.windfinder.com/forecast/toronto_island'
+		r = urllib2.urlopen(url).read()
+		if DEV_WRITE_TO_FILES:
+			with open('d-test-predictions-wfreg', 'w') as fout:
+				fout.write(r)
 	return r
 
 def wfsuper_get_forecast():
@@ -104,15 +108,15 @@ def wf_parse_web_response(web_response_str_):
 			print daytetyme, windspeed 
 
 def wg_get_web_response():
-	if 0:
-		url = 'http://www.windguru.cz/int/index.php?sc=64'
-		r = urllib2.urlopen(url).read()
-		if 0:
-			with open('d-test-predictions-4', 'w') as fout:
-				fout.write(r)
-	else:
+	if DEV_READ_FROM_FILES:
 		with open('d-test-predictions-4') as fin:
 			r = fin.read()
+	else:
+		url = 'http://www.windguru.cz/int/index.php?sc=64'
+		r = urllib2.urlopen(url).read()
+		if DEV_WRITE_TO_FILES:
+			with open('d-test-predictions-4', 'w') as fout:
+				fout.write(r)
 	return r
 
 def to_ints(strs_):
@@ -152,15 +156,15 @@ def wg_get_forecast():
 	return wg_parse_web_response(web_response)
 
 def get_observations_web_response():
-	if 1:
+	if DEV_READ_FROM_FILES:
 		with open('d-current-conditions') as fin:
 			r = fin.read()
-		return r
-	url = 'http://atm.navcanada.ca/atm/iwv/CYTZ'
-	r = urllib2.urlopen(url).read()
-	if 0:
-		with open('d-current-conditions', 'w') as fout:
-			fout.write(r)
+	else:
+		url = 'http://atm.navcanada.ca/atm/iwv/CYTZ'
+		r = urllib2.urlopen(url).read()
+		if DEV_WRITE_TO_FILES:
+			with open('d-current-conditions', 'w') as fout:
+				fout.write(r)
 	return r
 
 class Observation(object):
@@ -173,7 +177,7 @@ class Observation(object):
 	def __str__(self):
 		return 'Observation(%s, wind=%d, gust=%d)' % (em_to_str(self.time_retrieved), self.base_wind, self.gust_wind)
 
-def parse_observations_web_response(web_response_):
+def parse_observation_web_response(web_response_):
 	soup = BeautifulSoup.BeautifulSoup(web_response_)
 	wind = None
 	gust = None
@@ -187,6 +191,8 @@ def parse_observations_web_response(web_response_):
 				time_retrieved = x.span.string
 	if gust == '--':
 		gust = wind
+	else:
+		gust = gust.lstrip('G')
 	time_retrieved = datetime_to_em(dateutil.parser.parse(time_retrieved).astimezone(dateutil.tz.tzlocal()))
 	wind = int(wind)
 	gust = int(gust)
@@ -211,10 +217,28 @@ def insert_parsed_observation_into_db(obs_):
 	curs.execute('INSERT INTO wind_observations_parsed VALUES (%s,%s,%s,%s)', cols)
 	curs.close()
 
+@lock
+def get_raw_observation_from_db(time_retrieved_):
+	sqlstr = 'select content from wind_observations_raw where time_retrieved = %d' % (time_retrieved_)
+	curs = db_conn().cursor()
+	curs.execute(sqlstr)
+	all_vis = []
+	for row in curs:
+		content = row[0]
+		r = content
+		break
+	else:
+		raise Exception('no rows')
+	curs.close()
+	return r
+
+def parse_observation_in_db(time_retrieved_):
+	return parse_observation_web_response(get_raw_observation_from_db(time_retrieved_))
+
 def get_observations_and_insert_into_db():
 	web_response = get_observations_web_response()
 	insert_raw_observation_into_db(web_response)
-	parsed_observation = parse_observations_web_response(web_response)
+	parsed_observation = parse_observation_web_response(web_response)
 	insert_parsed_observation_into_db(parsed_observation)
 
 if __name__ == '__main__':
