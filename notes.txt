@@ -20,3 +20,6 @@ http://weather.gc.ca/past_conditions/index_e.html?station=ytz
 
 http://meteoblue.com/
 
+add "target time" to wind_observations_parsed 
+
+
