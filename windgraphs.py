@@ -95,6 +95,13 @@ def windfinderregular_get_web_response():
 				fout.write(r)
 	return r
 
+def windfinderregular_get_forecast_and_insert_into_db():
+	web_response = windfinderregular_get_web_response()
+	time_retrieved_em = now_em()
+	insert_raw_forecast_into_db('wf_reg', web_response, time_retrieved_em)
+	forecasts = windfinder_parse_web_response(web_response, 'wf_reg', time_retrieved_em)
+	insert_parsed_forecasts_into_db(forecasts)
+
 def windfindersuper_get_forecast_and_insert_into_db():
 	web_response = windfindersuper_get_web_response()
 	time_retrieved_em = now_em()
