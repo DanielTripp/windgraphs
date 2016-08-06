@@ -109,10 +109,6 @@ def windfindersuper_get_forecast_and_insert_into_db():
 	forecasts = windfinder_parse_web_response(web_response, 'wf_sup', time_retrieved_em)
 	insert_parsed_forecasts_into_db(forecasts)
 
-def windfinderregular_get_forecast():
-	web_response = windfinderregular_get_web_response()
-	return windfinder_parse_web_response(web_response, 'wf_reg')
-
 def parent(node_, n_):
 	r = node_
 	for i in xrange(n_):
@@ -188,10 +184,6 @@ def wg_parse_web_response(web_response_str_):
 						daytetyme = datetime.datetime.strptime('%02d-%02d %02d:00 %d' % (month, day, hour, retrieved_year), '%m-%d %H:%M %Y')
 						print daytetyme, windspeed 
 				break
-
-def wg_get_forecast():
-	web_response = wg_get_web_response()
-	return wg_parse_web_response(web_response)
 
 def get_observations_web_response():
 	if DEV_READ_FROM_FILES:
