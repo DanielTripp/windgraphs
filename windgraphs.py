@@ -306,8 +306,10 @@ def get_observations_and_insert_into_db():
 	parsed_observation = parse_observation_web_response(web_response)
 	insert_parsed_observation_into_db(parsed_observation)
 
-def get_forecasts_and_insert_into_db():
-	pass
+def get_all_forecasts_and_insert_into_db():
+	windfinderregular_get_forecast_and_insert_into_db()
+	windfindersuper_get_forecast_and_insert_into_db()
+	windguru_get_forecast_and_insert_into_db()
 
 if __name__ == '__main__':
 
