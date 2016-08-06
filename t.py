@@ -5,7 +5,7 @@ import windgraphs
 
 if __name__ == '__main__':
 
-	windgraphs.windfindersuper_get_forecast_and_insert_into_db()
+	windgraphs.windguru_get_forecast_and_insert_into_db()
 
 
 

@@ -64,7 +64,7 @@ class Forecast(object):
 		self.gust_wind = gust_wind_
 
 	def __str__(self):
-		return 'Forecast(%s, %s, %s, wind=%d, gust=%d)' % \
+		return 'Forecast(%s, %s, %s, wind=%2d, gust=%2d)' % \
 				(self.weather_channel, em_to_str(self.time_retrieved), em_to_str(self.target_time), self.base_wind, self.gust_wind)
 
 	def __repr__(self):
@@ -109,6 +109,13 @@ def windfindersuper_get_forecast_and_insert_into_db():
 	forecasts = windfinder_parse_web_response(web_response, 'wf_sup', time_retrieved_em)
 	insert_parsed_forecasts_into_db(forecasts)
 
+def windguru_get_forecast_and_insert_into_db():
+	web_response = windguru_get_web_response()
+	time_retrieved_em = now_em()
+	insert_raw_forecast_into_db('wg', web_response, time_retrieved_em)
+	forecasts = windguru_parse_web_response(web_response, time_retrieved_em)
+	insert_parsed_forecasts_into_db(forecasts)
+
 def parent(node_, n_):
 	r = node_
 	for i in xrange(n_):
@@ -141,49 +148,53 @@ def windfinder_parse_web_response(web_response_str_, weather_channel_, time_retr
 			r.append(Forecast(weather_channel_, time_retrieved_, daytetyme, windspeed, windgusts))
 	return r
 
-def wg_get_web_response():
+def windguru_get_web_response():
 	if DEV_READ_FROM_FILES:
-		with open('d-test-predictions-4') as fin:
+		with open('d-test-predictions-wg') as fin:
 			r = fin.read()
 	else:
 		url = 'http://www.windguru.cz/int/index.php?sc=64'
 		r = urllib2.urlopen(url).read()
 		if DEV_WRITE_TO_FILES:
-			with open('d-test-predictions-4', 'w') as fout:
+			with open('d-test-predictions-wg', 'w') as fout:
 				fout.write(r)
 	return r
 
 def to_ints(strs_):
 	return [int(x) for x in strs_]
 
-def wg_parse_web_response(web_response_str_):
+def windguru_parse_web_response(web_response_str_, time_retrieved_):
 	soup = BeautifulSoup.BeautifulSoup(web_response_str_)
-	# models: GFS = 3, NAM = 4, HRW = 38 
-	desired_model = '3'
+	r = []
+	models = ['3', '4', '38'] # GFS = 3, NAM = 4, HRW = 38 
+	model_to_weatherchannel = {'3':'wg_gfs', '4':'wg_nam', '38':'wg_hrw'}
 	for i, script_tag in enumerate(soup.findAll('script')):
 		for c in script_tag.contents:
 			s = c.string
 			if 'var wg_fcst_tab_data' in s:
 				json_str = re.search('{.*}', s).group(0)
 				parsed_data = json.loads(json_str)
-				if desired_model in parsed_data['fcst']:
-					data = parsed_data['fcst'][desired_model]
-					retrieved_datetime = data['update_last'].split(',')[1].lstrip()
-					retrieved_datetime = ' '.join(retrieved_datetime.split(' ', 3)[:3])
-					retrieved_datetime = datetime.datetime.strptime(retrieved_datetime, '%d %b %Y')
-					retrieved_year = retrieved_datetime.year
-					retrieved_month = retrieved_datetime.month
-					retrieved_day = retrieved_datetime.day
-					windspeeds = to_ints(data['WINDSPD'])
-					windgusts = to_ints(data['GUST'])
-					days = to_ints(data['hr_d'])
-					hours = to_ints(data['hr_h'])
-					assert len(windspeeds) == len(windgusts) == len(days) == len(hours) 
-					for day, hour, windspeed in zip(days, hours, windspeeds):
-						month = (retrieved_month if day >= retrieved_day else retrieved_month+1)
-						daytetyme = datetime.datetime.strptime('%02d-%02d %02d:00 %d' % (month, day, hour, retrieved_year), '%m-%d %H:%M %Y')
-						print daytetyme, windspeed 
+				for model in models:
+					if model in parsed_data['fcst']:
+						data = parsed_data['fcst'][model]
+						retrieved_datetime = data['update_last'].split(',')[1].lstrip()
+						retrieved_datetime = ' '.join(retrieved_datetime.split(' ', 3)[:3])
+						retrieved_datetime = datetime.datetime.strptime(retrieved_datetime, '%d %b %Y')
+						retrieved_year = retrieved_datetime.year
+						retrieved_month = retrieved_datetime.month
+						retrieved_day = retrieved_datetime.day
+						windspeeds = to_ints(data['WINDSPD'])
+						windgusts = to_ints(data['GUST'])
+						days = to_ints(data['hr_d'])
+						hours = to_ints(data['hr_h'])
+						assert len(windspeeds) == len(windgusts) == len(days) == len(hours) 
+						for day, hour, windspeed, windgust in zip(days, hours, windspeeds, windgusts):
+							month = (retrieved_month if day >= retrieved_day else retrieved_month+1)
+							daytetyme = datetime.datetime.strptime('%02d-%02d %02d:00 %d' % (month, day, hour, retrieved_year), '%m-%d %H:%M %Y')
+							target_time = datetime_to_em(daytetyme)
+							r.append(Forecast(model_to_weatherchannel[model], time_retrieved_, target_time, windspeed, windgust))
 				break
+	return r
 
 def get_observations_web_response():
 	if DEV_READ_FROM_FILES:
@@ -205,7 +216,7 @@ class Observation(object):
 		self.gust_wind = gust_wind_
 
 	def __str__(self):
-		return 'Observation(%s, wind=%d, gust=%d)' % (em_to_str(self.time_retrieved), self.base_wind, self.gust_wind)
+		return 'Observation(%s, wind=%2d, gust=%2d)' % (em_to_str(self.time_retrieved), self.base_wind, self.gust_wind)
 
 	def __repr__(self):
 		return self.__str__()
