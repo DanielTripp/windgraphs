@@ -71,7 +71,7 @@ class Forecast(object):
 		return self.__str__()
 
 
-def wfsuper_get_web_response():
+def windfindersuper_get_web_response():
 	if DEV_READ_FROM_FILES:
 		with open('d-test-predictions-wfsuper') as fin:
 			r = fin.read()
@@ -83,7 +83,7 @@ def wfsuper_get_web_response():
 				fout.write(r)
 	return r
 
-def wfreg_get_web_response():
+def windfinderregular_get_web_response():
 	if DEV_READ_FROM_FILES:
 		with open('d-test-predictions-wfreg') as fin:
 			r = fin.read()
@@ -95,16 +95,16 @@ def wfreg_get_web_response():
 				fout.write(r)
 	return r
 
-def wfsuper_get_forecast_and_insert_into_db():
-	web_response = wfsuper_get_web_response()
+def windfindersuper_get_forecast_and_insert_into_db():
+	web_response = windfindersuper_get_web_response()
 	time_retrieved_em = now_em()
 	insert_raw_forecast_into_db('wf_sup', web_response, time_retrieved_em)
-	forecasts = wf_parse_web_response(web_response, 'wf_sup', time_retrieved_em)
+	forecasts = windfinder_parse_web_response(web_response, 'wf_sup', time_retrieved_em)
 	insert_parsed_forecasts_into_db(forecasts)
 
-def wfreg_get_forecast():
-	web_response = wfreg_get_web_response()
-	return wf_parse_web_response(web_response, 'wf_reg')
+def windfinderregular_get_forecast():
+	web_response = windfinderregular_get_web_response()
+	return windfinder_parse_web_response(web_response, 'wf_reg')
 
 def parent(node_, n_):
 	r = node_
@@ -112,7 +112,7 @@ def parent(node_, n_):
 		r = r.parent
 	return r
 
-def wf_parse_web_response(web_response_str_, weather_channel_, time_retrieved_):
+def windfinder_parse_web_response(web_response_str_, weather_channel_, time_retrieved_):
 	"""
 	Return a list of Forecast objects. 
 	The windfinder regular forecast and superforecast have different URLs but use the same HTML format. 
