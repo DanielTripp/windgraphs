@@ -233,13 +233,19 @@ def parse_observation_web_response(web_response_):
 				wind = x.span.string
 			elif 'Updated' in content:
 				time_retrieved = x.span.string
+
+	if wind == 'CALM':
+		wind = 0
+	else:
+		wind = int(wind)
+
 	if gust == '--':
 		gust = wind
 	else:
 		gust = gust.lstrip('G')
-	time_retrieved = datetime_to_em(dateutil.parser.parse(time_retrieved).astimezone(dateutil.tz.tzlocal()))
-	wind = int(wind)
 	gust = int(gust)
+
+	time_retrieved = datetime_to_em(dateutil.parser.parse(time_retrieved).astimezone(dateutil.tz.tzlocal()))
 	return Observation(time_retrieved, wind, gust)
 
 @lock
@@ -287,7 +293,6 @@ def get_raw_observation_from_db(time_retrieved_):
 	sqlstr = 'select content from wind_observations_raw where time_retrieved = %d' % (time_retrieved_)
 	curs = db_conn().cursor()
 	curs.execute(sqlstr)
-	all_vis = []
 	for row in curs:
 		content = row[0]
 		r = content
