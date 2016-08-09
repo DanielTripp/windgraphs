@@ -288,9 +288,8 @@ def insert_parsed_observation_into_db(obs_):
 	curs.execute('INSERT INTO wind_observations_parsed VALUES (%s,%s,%s,%s)', cols)
 	curs.close()
 
-@lock
-def get_raw_observation_from_db(time_retrieved_):
-	sqlstr = 'select content from wind_observations_raw where time_retrieved = %d' % (time_retrieved_)
+def get_raw_observation_from_db(t_):
+	sqlstr = 'select content from wind_observations_raw where time_retrieved = %d' % (t_)
 	curs = db_conn().cursor()
 	curs.execute(sqlstr)
 	for row in curs:
@@ -302,8 +301,16 @@ def get_raw_observation_from_db(time_retrieved_):
 	curs.close()
 	return r
 
-def parse_observation_in_db(time_retrieved_):
-	return parse_observation_web_response(get_raw_observation_from_db(time_retrieved_))
+def print_parsed_observation_from_db(datestr_):
+	t = get_nearest_time_retrieved('wind_observations_raw', datestr_)
+	if t is None:
+		print 'No rows found'
+	else:
+		content = get_raw_observation_from_db(t)
+		print t
+		print em_to_str(t)
+		print 
+		print parse_observation_web_response(content)
 
 def get_observations_and_insert_into_db():
 	web_response = get_observations_web_response()
@@ -351,13 +358,14 @@ def get_nearest_time_retrieved(table_, datestr_):
 			r = gt_time
 	return r
 	
-def print_raw_observation(datestr_):
+def print_raw_observation_from_db(datestr_):
 	t = get_nearest_time_retrieved('wind_observations_raw', datestr_)
 	if t is None:
 		print 'No rows found'
 	else:
 		content = get_raw_observation_from_db(t)
-		print t, em_to_str(t)
+		print t
+		print em_to_str(t)
 		print 
 		print content
 
