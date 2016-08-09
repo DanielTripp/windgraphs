@@ -316,6 +316,56 @@ def get_all_forecasts_and_insert_into_db():
 	windfindersuper_get_forecast_and_insert_into_db()
 	windguru_get_forecast_and_insert_into_db()
 
+def get_near_row(table_, time_em_, sooner_aot_later_):
+	sign = ('>=' if sooner_aot_later_ else '<=')
+	order = ('asc' if sooner_aot_later_ else 'desc')
+	sqlstr = '''select time_retrieved from %s  
+			where time_retrieved %s %d order by time_retrieved %s limit 1''' % (table_, sign, time_em_, order)
+	curs = db_conn().cursor()
+	try:
+		curs.execute(sqlstr)
+		r = None
+		for row in curs:
+			time_retrieved = row[0]
+			r = time_retrieved
+			break
+		return r
+	finally:
+		curs.close()
+
+def get_nearest_time_retrieved(table_, datestr_):
+	time_em = str_to_em(datestr_)
+	gt_time = get_near_row(table_, time_em, True)
+	lt_time = get_near_row(table_, time_em-1, False)
+	r = None
+	if gt_time is None and lt_time is None:
+		pass
+	elif gt_time is None and lt_time is not None:
+		r = lt_time
+	elif gt_time is not None and lt_time is None:
+		r = gt_time
+	else:
+		if abs(time_em - lt_time) < abs(time_em - gt_time):
+			r = lt_time
+		else:
+			r = gt_time
+	return r
+	
+def print_raw_observation(datestr_):
+	t = get_nearest_time_retrieved('wind_observations_raw', datestr_)
+	if t is None:
+		print 'No rows found'
+	else:
+		content = get_raw_observation_from_db(t)
+		print t, em_to_str(t)
+		print 
+		print content
+
+if __name__ == '__main__':
+
+	datestr = sys.argv[1]
+	print_nearest_row(datestr)
+
 if __name__ == '__main__':
 
 	pass
