@@ -476,23 +476,24 @@ def get_forecast_parsed(weather_channel_, time_retrieved_exact_, target_time_):
 	return r
 
 def t(): # tdr 
-	check_weather_time_str = '2016-08-07 13:00'
-	target_day = datetime.date(2016, 8, 8)
 	target_time_of_day = datetime.time(17, 00)
+	weather_check_hours_in_advance = 28
+	num_target_days = 10
 
-	check_weather_time = str_to_em(check_weather_time_str)
+	for target_day in dates(datetime.date.today(), num_target_days):
+		target_t = datetime_to_em(datetime.datetime.combine(target_day, target_time_of_day))
+		check_weather_t = target_t - 1000*60*60*weather_check_hours_in_advance
 
-	num_days = 10
-	observation = get_averaged_observation_from_db(datetime_to_em(datetime.datetime.combine(target_day, target_time_of_day)))
-	print observation
+		print 'target time:', em_to_str(target_t)
+		observation = get_averaged_observation_from_db(target_t)
+		print observation
 
-	check_weather_time = str_to_em(check_weather_time_str)
-	target_t = datetime_to_em(datetime.datetime.combine(target_day, target_time_of_day))
-	for weather_channel in PARSED_WEATHER_CHANNELS:
-		print weather_channel 
-		time_retrieved = get_forecast_nearest_time_retrieved(weather_channel, check_weather_time, target_t)
-		if time_retrieved is not None:
-			print get_forecast_parsed(weather_channel, time_retrieved, target_t)
+		for weather_channel in PARSED_WEATHER_CHANNELS:
+			print weather_channel 
+			time_retrieved = get_forecast_nearest_time_retrieved(weather_channel, check_weather_t, target_t)
+			if time_retrieved is not None:
+				print get_forecast_parsed(weather_channel, time_retrieved, target_t)
+		print '---'
 			
 
 if __name__ == '__main__':
