@@ -6,6 +6,8 @@ import BeautifulSoup
 import psycopg2
 from misc import *
 
+PARSED_WEATHER_CHANNELS = ['wf_reg', 'wf_sup', 'wg_gfs', 'wg_nam', 'wg_hrw'] 
+
 PASSWORD = file_to_string(os.path.expanduser('~/.windgraphs/DB_PASSWORD')).strip()
 
 DEV = os.path.exists('DEV')
@@ -323,27 +325,75 @@ def get_all_forecasts_and_insert_into_db():
 	windfindersuper_get_forecast_and_insert_into_db()
 	windguru_get_forecast_and_insert_into_db()
 
-def get_near_row(table_, time_em_, sooner_aot_later_):
+def get_forecast_near_time_retrieveds(weather_channel_, time_retrieved_approx_, target_time_, sooner_aot_later_, maxrows_, time_span_):
+	assert isinstance(time_retrieved_approx_, long)
+	assert isinstance(target_time_, long)
 	sign = ('>=' if sooner_aot_later_ else '<=')
 	order = ('asc' if sooner_aot_later_ else 'desc')
-	sqlstr = '''select time_retrieved from %s  
-			where time_retrieved %s %d order by time_retrieved %s limit 1''' % (table_, sign, time_em_, order)
+	table = 'wind_forecasts_parsed'
+	sqlstr = '''select time_retrieved from %s where target_time = %d and time_retrieved %s %d and weather_channel = '%s' 
+			order by time_retrieved %s limit %d''' % (table, target_time_, sign, time_retrieved_approx_, weather_channel_, 
+			order, maxrows_)
 	curs = db_conn().cursor()
 	try:
 		curs.execute(sqlstr)
-		r = None
+		r = []
 		for row in curs:
-			time_retrieved = row[0]
-			r = time_retrieved
-			break
+			t = row[0]
+			if (time_span_ is None) or (abs(t - time_retrieved_approx_) <= time_span_):
+				r.append(t)
 		return r
 	finally:
 		curs.close()
 
+def get_forecast_nearest_time_retrieved(weather_channel_, time_retrieved_approx_, target_time_):
+	times = get_forecast_nearest_time_retrieveds(weather_channel_, time_retrieved_approx_, target_time_, 5, 1000*60*30)
+	if len(times) == 0:
+		return None
+	else:
+		return min(times, key=lambda t: abs(t-time_retrieved_approx_))
+
+def get_forecast_nearest_time_retrieveds(weather_channel_, time_retrieved_em_, target_time_, 
+			maxrows_each_side_, time_span_each_side_):
+	less_thans = get_forecast_near_time_retrieveds(weather_channel_, time_retrieved_em_, target_time_, False, 
+			maxrows_each_side_, time_span_each_side_)
+	greater_thans = get_forecast_near_time_retrieveds(weather_channel_, time_retrieved_em_, target_time_, True, 
+			maxrows_each_side_, time_span_each_side_)
+	r = list(reversed(less_thans)) + greater_thans
+	return r
+
+def get_near_time_retrieveds(table_, time_em_, sooner_aot_later_, maxrows_, time_span_):
+	sign = ('>=' if sooner_aot_later_ else '<=')
+	order = ('asc' if sooner_aot_later_ else 'desc')
+	sqlstr = '''select time_retrieved from %s  
+			where time_retrieved %s %d order by time_retrieved %s limit %d''' % (table_, sign, time_em_, order, maxrows_)
+	curs = db_conn().cursor()
+	try:
+		curs.execute(sqlstr)
+		r = []
+		for row in curs:
+			t = row[0]
+			if (time_span_ is None) or (abs(t - time_em_) <= time_span_):
+				r.append(t)
+		return r
+	finally:
+		curs.close()
+
+def get_nearest_time_retrieveds(table_, time_em_, maxrows_each_side_, time_span_each_side_):
+	less_thans = get_near_time_retrieveds(table_, time_em_, False, maxrows_each_side_, time_span_each_side_)
+	greater_thans = get_near_time_retrieveds(table_, time_em_, True, maxrows_each_side_, time_span_each_side_)
+	r = list(reversed(less_thans)) + greater_thans
+	return r
+
+def get_near_time_retrieved(table_, time_em_, sooner_aot_later_):
+	r = get_near_time_retrieveds(table_, time_em_, sooner_aot_later_, 1, None)
+	assert len(r) <= 1
+	return (None if len(r) == 0 else r[0])
+
 def get_nearest_time_retrieved(table_, datestr_):
 	time_em = str_to_em(datestr_)
-	gt_time = get_near_row(table_, time_em, True)
-	lt_time = get_near_row(table_, time_em-1, False)
+	gt_time = get_near_time_retrieved(table_, time_em, True)
+	lt_time = get_near_time_retrieved(table_, time_em-1, False)
 	r = None
 	if gt_time is None and lt_time is None:
 		pass
@@ -369,10 +419,81 @@ def print_raw_observation_from_db(datestr_):
 		print 
 		print content
 
-if __name__ == '__main__':
+def get_averaged_observation_from_db(t_):
+	assert isinstance(t_, long)
+	obs_times = get_nearest_time_retrieveds('wind_observations_parsed', t_, 3, 1000*60*25)
+	base_winds = []
+	gust_winds = []
+	for obs_time in obs_times:
+		sqlstr = 'select base_wind, gust_wind from wind_observations_parsed where time_retrieved = %d' % (obs_time)
+		curs = db_conn().cursor()
+		try:
+			curs.execute(sqlstr)
+			row = curs.next()
+			base_winds.append(row[0])
+			gust_winds.append(row[1])
+		finally:
+			curs.close()
+	assert len(base_winds) == len(gust_winds)
+	if len(base_winds) == 0:
+		return None
+	else:
+		return Observation(t_, int(average(base_winds)), max(gust_winds))
 
-	datestr = sys.argv[1]
-	print_nearest_row(datestr)
+def dates(start_date_, num_days_):
+	r = []
+	r.append(start_date_)
+	for i in xrange(num_days_-1):
+		r.append(r[-1] - datetime.timedelta(1))
+	r = r[::-1]
+	return r
+
+def get_averaged_observations_from_db(target_time_, start_date_, num_days_):
+	assert isinstance(target_time_, datetime.time)
+	assert isinstance(start_date_, datetime.date)
+	r = {}
+	for dayte in dates(start_date_, num_days_):
+		daytetyme = datetime.datetime.combine(dayte, target_time_)
+		observation = get_averaged_observation_from_db(datetime_to_em(daytetyme))
+		if observation is not None:
+			r[daytetyme] = observation
+	return r
+
+def get_forecast_parsed(weather_channel_, time_retrieved_exact_, target_time_):
+	sqlstr = '''select base_wind, gust_wind from wind_forecasts_parsed where target_time = %d and time_retrieved = %d 
+			and weather_channel = '%s' ''' % (target_time_, time_retrieved_exact_, weather_channel_)
+	curs = db_conn().cursor()
+	try:
+		curs.execute(sqlstr)
+		for row in curs:
+			base_wind, gust_wind = row
+			break
+		else:
+			raise Exception()
+	finally:
+		curs.close()
+	r = Forecast(weather_channel_, time_retrieved_exact_, target_time_, base_wind, gust_wind)
+	return r
+
+def t(): # tdr 
+	check_weather_time_str = '2016-08-07 13:00'
+	target_day = datetime.date(2016, 8, 8)
+	target_time_of_day = datetime.time(17, 00)
+
+	check_weather_time = str_to_em(check_weather_time_str)
+
+	num_days = 10
+	observation = get_averaged_observation_from_db(datetime_to_em(datetime.datetime.combine(target_day, target_time_of_day)))
+	print observation
+
+	check_weather_time = str_to_em(check_weather_time_str)
+	target_t = datetime_to_em(datetime.datetime.combine(target_day, target_time_of_day))
+	for weather_channel in PARSED_WEATHER_CHANNELS:
+		print weather_channel 
+		time_retrieved = get_forecast_nearest_time_retrieved(weather_channel, check_weather_time, target_t)
+		if time_retrieved is not None:
+			print get_forecast_parsed(weather_channel, time_retrieved, target_t)
+			
 
 if __name__ == '__main__':
 
