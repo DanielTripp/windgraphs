@@ -497,12 +497,16 @@ def t(): # tdr
 	target_times = [datetime_to_em(datetime.datetime.combine(target_day, target_time_of_day)) for target_day in days]
 	channel_to_xvals = defaultdict(lambda: [])
 	channel_to_yvals = defaultdict(lambda: [])
+	observation_xvals = []
+	observation_yvals = []
 	for target_t in target_times:
 		check_weather_t = target_t - 1000*60*60*weather_check_hours_in_advance
 
 		print 'target time:', em_to_str(target_t)
 		observation = get_averaged_observation_from_db(target_t)
 		if observation is not None:
+			observation_xvals.append(em_to_datetime(target_t))
+			observation_yvals.append(observation.base_wind)
 			for channel in PARSED_WEATHER_CHANNELS:
 				print channel 
 				time_retrieved = get_forecast_nearest_time_retrieved(channel, check_weather_t, target_t)
@@ -515,6 +519,8 @@ def t(): # tdr
 	for channel in channel_to_xvals.keys():
 		color = WEATHER_CHANNEL_TO_COLOR[channel]
 		plt.plot(channel_to_xvals[channel], channel_to_yvals[channel], color=color, marker='+', linestyle='solid')
+
+	plt.plot(observation_xvals, observation_yvals, color='black', marker='+', linestyle='solid', linewidth=2)
 
 	plt.xlim(em_to_datetime(target_times[0]-1000*60*60*24), em_to_datetime(target_times[-1]+1000*60*60*24))
 
