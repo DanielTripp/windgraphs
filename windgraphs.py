@@ -4,9 +4,18 @@ import sys, urllib2, json, pprint, re, datetime, os, threading
 import dateutil.parser, dateutil.tz
 import BeautifulSoup
 import psycopg2
+import matplotlib
+matplotlib.use('Agg')
+import matplotlib.pyplot as plt
+import matplotlib.dates as mpldates # tdr?   not used? 
+import matplotlib.ticker as ticker
+import matplotlib.transforms # tdr?  not used? 
 from misc import *
 
 PARSED_WEATHER_CHANNELS = ['wf_reg', 'wf_sup', 'wg_gfs', 'wg_nam', 'wg_hrw'] 
+WEATHER_CHANNEL_TO_COLOR = {'wf_reg':(0.6,0,0.1), 'wf_sup':(0.4,0,0.2), 
+		'wg_gfs':(0,0,0.5), 'wg_nam':(0.2,0.3,0.6), 'wg_hrw':(0.2,0.4,0.6)}
+assert set(WEATHER_CHANNEL_TO_COLOR.keys()) == set(PARSED_WEATHER_CHANNELS)
 
 PASSWORD = file_to_string(os.path.expanduser('~/.windgraphs/DB_PASSWORD')).strip()
 
@@ -440,7 +449,7 @@ def get_averaged_observation_from_db(t_):
 	else:
 		return Observation(t_, int(average(base_winds)), max(gust_winds))
 
-def dates(start_date_, num_days_):
+def get_days(start_date_, num_days_):
 	r = []
 	r.append(start_date_)
 	for i in xrange(num_days_-1):
@@ -480,21 +489,40 @@ def t(): # tdr
 	weather_check_hours_in_advance = 28
 	num_target_days = 10
 
-	for target_day in dates(datetime.date.today(), num_target_days):
-		target_t = datetime_to_em(datetime.datetime.combine(target_day, target_time_of_day))
+	plt.figure(1)
+	fig, ax = plt.subplots()
+	fig.set_size_inches(15, 8)
+
+	days = get_days(datetime.date.today(), num_target_days)
+	target_times = [datetime_to_em(datetime.datetime.combine(target_day, target_time_of_day)) for target_day in days]
+	channel_to_xvals = defaultdict(lambda: [])
+	channel_to_yvals = defaultdict(lambda: [])
+	for target_t in target_times:
 		check_weather_t = target_t - 1000*60*60*weather_check_hours_in_advance
 
 		print 'target time:', em_to_str(target_t)
 		observation = get_averaged_observation_from_db(target_t)
-		print observation
-
-		for weather_channel in PARSED_WEATHER_CHANNELS:
-			print weather_channel 
-			time_retrieved = get_forecast_nearest_time_retrieved(weather_channel, check_weather_t, target_t)
-			if time_retrieved is not None:
-				print get_forecast_parsed(weather_channel, time_retrieved, target_t)
+		if observation is not None:
+			for channel in PARSED_WEATHER_CHANNELS:
+				print channel 
+				time_retrieved = get_forecast_nearest_time_retrieved(channel, check_weather_t, target_t)
+				if time_retrieved is not None:
+					forecast = get_forecast_parsed(channel, time_retrieved, target_t)
+					channel_to_xvals[channel].append(em_to_datetime(target_t))
+					channel_to_yvals[channel].append(forecast.base_wind)
 		print '---'
-			
+
+	for channel in channel_to_xvals.keys():
+		color = WEATHER_CHANNEL_TO_COLOR[channel]
+		plt.plot(channel_to_xvals[channel], channel_to_yvals[channel], color=color, marker='+', linestyle='solid')
+
+	plt.xlim(em_to_datetime(target_times[0]-1000*60*60*24), em_to_datetime(target_times[-1]+1000*60*60*24))
+
+	fig.autofmt_xdate()
+
+	out_png_filename = 'd-plot.png'
+	output_directory = '.'
+	plt.savefig(os.path.join(output_directory, out_png_filename), bbox_inches='tight')
 
 if __name__ == '__main__':
 
