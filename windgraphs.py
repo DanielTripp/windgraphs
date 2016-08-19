@@ -241,6 +241,8 @@ def parse_observation_web_response(web_response_):
 			if 'Gusting' in content:
 				gust = x.span.string
 			elif 'Wind Speed' in content:
+				# Witnessed this being ' ' once, 2016-08-18 23:40.  Other parts of the 
+				# page looked like they were in error too.  
 				wind = x.span.string
 			elif 'Updated' in content:
 				time_retrieved = x.span.string
