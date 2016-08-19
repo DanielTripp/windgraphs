@@ -487,7 +487,7 @@ def get_forecast_parsed(weather_channel_, time_retrieved_exact_, target_time_):
 def t(): # tdr 
 	target_time_of_day = datetime.time(17, 00)
 	weather_check_hours_in_advance = 28
-	num_target_days = 10
+	num_target_days = 20
 
 	plt.figure(1)
 	fig, ax = plt.subplots()
@@ -518,9 +518,11 @@ def t(): # tdr
 
 	for channel in channel_to_xvals.keys():
 		color = WEATHER_CHANNEL_TO_COLOR[channel]
-		plt.plot(channel_to_xvals[channel], channel_to_yvals[channel], color=color, marker='+', linestyle='solid')
+		plt.plot(channel_to_xvals[channel], channel_to_yvals[channel], color=color, 
+				marker='o', markeredgewidth=6, markeredgecolor=color, linestyle='solid', linewidth=4)
 
-	plt.plot(observation_xvals, observation_yvals, color='black', marker='+', linestyle='solid', linewidth=2)
+	plt.plot(observation_xvals, observation_yvals, color='black', marker='o', markeredgewidth=6, 
+			linestyle='solid', linewidth=6)
 
 	plt.xlim(em_to_datetime(target_times[0]-1000*60*60*24), em_to_datetime(target_times[-1]+1000*60*60*24))
 
