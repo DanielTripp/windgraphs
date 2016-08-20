@@ -411,10 +411,10 @@ def get_raw_forecast_near_time_retrieved(weather_channel_, t_, sooner_aot_later_
 	sign = ('>=' if sooner_aot_later_ else '<=')
 	order = ('asc' if sooner_aot_later_ else 'desc')
 	sqlstr = '''select time_retrieved from wind_forecasts_raw 
-			where time_retrieved %s %d order by time_retrieved %s limit 1''' % (sign, t_, order)
+			where weather_channel = %%s and time_retrieved %s %%s order by time_retrieved %s limit 1''' % (sign, order)
 	curs = db_conn().cursor()
 	try:
-		curs.execute(sqlstr)
+		curs.execute(sqlstr, [weather_channel_, t_])
 		for row in curs:
 			r = row[0]
 		return r
