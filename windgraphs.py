@@ -401,22 +401,45 @@ def get_near_time_retrieved(table_, time_em_, sooner_aot_later_):
 	assert len(r) <= 1
 	return (None if len(r) == 0 else r[0])
 
+def get_nearest_raw_forecast_time_retrieved(weather_channel_, datestr_):
+	t = str_to_em(datestr_)
+	lt_time = get_raw_forecast_near_time_retrieved(weather_channel_, t-1, False)
+	gt_time = get_raw_forecast_near_time_retrieved(weather_channel_, t,   True)
+	return vote_on_nearest_time(t, lt_time, gt_time)
+
+def get_raw_forecast_near_time_retrieved(weather_channel_, t_, sooner_aot_later_):
+	sign = ('>=' if sooner_aot_later_ else '<=')
+	order = ('asc' if sooner_aot_later_ else 'desc')
+	sqlstr = '''select time_retrieved from wind_forecasts_raw 
+			where time_retrieved %s %d order by time_retrieved %s limit 1''' % (sign, t_, order)
+	curs = db_conn().cursor()
+	try:
+		curs.execute(sqlstr)
+		for row in curs:
+			r = row[0]
+		return r
+	finally:
+		curs.close()
+
 def get_nearest_time_retrieved(table_, datestr_):
 	time_em = str_to_em(datestr_)
-	gt_time = get_near_time_retrieved(table_, time_em, True)
 	lt_time = get_near_time_retrieved(table_, time_em-1, False)
+	gt_time = get_near_time_retrieved(table_, time_em, True)
+	return vote_on_nearest_time(time_em, lt_time, gt_time)
+
+def vote_on_nearest_time(t_, lt_time_, gt_time_):
 	r = None
-	if gt_time is None and lt_time is None:
+	if gt_time_ is None and lt_time_ is None:
 		pass
-	elif gt_time is None and lt_time is not None:
-		r = lt_time
-	elif gt_time is not None and lt_time is None:
-		r = gt_time
+	elif gt_time_ is None and lt_time_ is not None:
+		r = lt_time_
+	elif gt_time_ is not None and lt_time_ is None:
+		r = gt_time_
 	else:
-		if abs(time_em - lt_time) < abs(time_em - gt_time):
-			r = lt_time
+		if abs(t_ - lt_time_) < abs(t_ - gt_time_):
+			r = lt_time_
 		else:
-			r = gt_time
+			r = gt_time_
 	return r
 	
 def print_raw_observation_from_db(datestr_):
@@ -429,6 +452,32 @@ def print_raw_observation_from_db(datestr_):
 		print em_to_str(t)
 		print 
 		print content
+
+def print_raw_forecast_from_db(weather_channel_, datestr_):
+	t = get_nearest_raw_forecast_time_retrieved(weather_channel_, datestr_)
+	print t
+	if t is None:
+		print 'No rows found'
+	else:
+		content = get_raw_forecast_from_db(weather_channel_, t)
+		print t
+		print em_to_str(t)
+		print 
+		print content
+
+def get_raw_forecast_from_db(weather_channel_, t_):
+	sqlstr = 'select content from wind_forecasts_raw where time_retrieved = %d' % (t_)
+	curs = db_conn().cursor()
+	curs.execute(sqlstr)
+	for row in curs:
+		content = row[0]
+		r = content
+		break
+	else:
+		raise Exception('no rows')
+	curs.close()
+	return r
+
 
 def get_averaged_observation_from_db(t_):
 	assert isinstance(t_, long)
