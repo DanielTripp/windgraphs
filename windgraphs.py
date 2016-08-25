@@ -194,10 +194,21 @@ def windguru_parse_web_response(web_response_str_, time_retrieved_):
 						retrieved_year = retrieved_datetime.year
 						retrieved_month = retrieved_datetime.month
 						retrieved_day = retrieved_datetime.day
-						windspeeds = to_ints(data['WINDSPD'])
-						windgusts = to_ints(data['GUST'])
+						windspeeds = data['WINDSPD']
+						windgusts = data['GUST']
 						days = to_ints(data['hr_d'])
-						hours = to_ints(data['hr_h'])
+						day_retrieved = retrieved_datetime.day
+						# Sometimes data for days before today is included, and sometimes 
+						# some of the speed / gust data for in those days is null.  eg.  
+						# 2016-08-17 13:00.  We could ignore the null data.  But instead we 
+						# ignore data for days before today.  
+						for cutoff_idx, day in enumerate(days):
+							if day == day_retrieved:
+								break
+						days = days[cutoff_idx:]
+						hours = to_ints(data['hr_h'][cutoff_idx:])
+						windspeeds = to_ints(windspeeds[cutoff_idx:])
+						windgusts = to_ints(windgusts[cutoff_idx:])
 						assert len(windspeeds) == len(windgusts) == len(days) == len(hours) 
 						for day, hour, windspeed, windgust in zip(days, hours, windspeeds, windgusts):
 							month = (retrieved_month if day >= retrieved_day else retrieved_month+1)
@@ -206,6 +217,12 @@ def windguru_parse_web_response(web_response_str_, time_retrieved_):
 							r.append(Forecast(model_to_weatherchannel[model], time_retrieved_, target_time, windspeed, windgust))
 				break
 	return r
+
+def zip_filter(lists_, func_):
+	assert len(set(len(l) for l in lists_)) == 1
+	keep = [all(func_(l[i]) for l in lists_) for i in range(len(lists_[0]))]
+	for l in lists_:
+		l[:] = [e for i, e in enumerate(l) if keep[i]]
 
 def get_observations_web_response():
 	if DEV_READ_FROM_FILES:
@@ -324,6 +341,25 @@ def print_parsed_observation_from_db(datestr_):
 		print em_to_str(t)
 		print 
 		print parse_observation_web_response(content)
+
+def print_parsed_forecasts_from_db(weather_channel_, datestr_):
+	t = get_nearest_raw_forecast_time_retrieved(weather_channel_, datestr_)
+	print t
+	if t is None:
+		print 'No rows found'
+	else:
+		print t
+		print em_to_str(t)
+		print 
+		web_response = get_raw_forecast_from_db(weather_channel_, t)
+		if weather_channel_ == 'wg':
+			forecasts = windguru_parse_web_response(web_response, t)
+		elif weather_channel_ == 'wf':
+			forecasts = windfinder_parse_web_response(web_response, t)
+		else:
+			raise Exception()
+		for forecast in forecasts:
+			print forecast
 
 def get_observations_and_insert_into_db():
 	web_response = get_observations_web_response()
