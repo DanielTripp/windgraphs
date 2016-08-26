@@ -249,6 +249,10 @@ class Observation(object):
 	def __repr__(self):
 		return self.__str__()
 
+# Unlike forecasts, we get a "time retrieved" from the web content on parse 
+# here, so we insert that into the "parsed observations" table, so the "time 
+# retrieved" values will not match between the "raw observations" and "parsed 
+# observations" table.  It's unclear if there are any strong reasons for this.  
 def parse_observation_web_response(web_response_):
 	soup = BeautifulSoup.BeautifulSoup(web_response_)
 	wind = None
