@@ -451,6 +451,7 @@ def get_raw_forecast_near_time_retrieved(weather_channel_, t_, sooner_aot_later_
 	curs = db_conn().cursor()
 	try:
 		curs.execute(sqlstr, [weather_channel_, t_])
+		r = None
 		for row in curs:
 			r = row[0]
 		return r
