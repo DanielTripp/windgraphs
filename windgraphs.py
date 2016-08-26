@@ -154,7 +154,7 @@ def windfinder_parse_web_response(web_response_str_, weather_channel_, time_retr
 			dayte = parent(y, 7).findAll('div', {'class': 'weathertable__header'}, recursive=False)[0].string.strip()
 			dayte = re.sub('^.*? ', '', dayte)
 			tyme = parent(y, 5).findAll('span', {'class': 'value'})[0].string
-			cur_year = datetime.datetime.today().year
+			cur_year = datetime.datetime.today().year # Danger - if backfilling in January - this will be a bug. 
 			daytetyme = datetime_to_em(datetime.datetime.strptime('%s %d %s:00' % (dayte, cur_year, tyme), '%b %d %Y %H:%M'))
 			r.append(Forecast(weather_channel_, time_retrieved_, daytetyme, windspeed, windgusts))
 	return r
