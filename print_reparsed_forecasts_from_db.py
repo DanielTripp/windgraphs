@@ -7,5 +7,5 @@ if __name__ == '__main__':
 
 	weather_channel = sys.argv[1]
 	datestr = sys.argv[2]
-	windgraphs.print_parsed_forecasts_from_db(weather_channel, datestr)
+	windgraphs.print_reparsed_forecasts_from_db(weather_channel, datestr)
 

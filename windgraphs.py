@@ -344,7 +344,7 @@ def print_parsed_observation_from_db(datestr_):
 		print 
 		print parse_observation_web_response(content)
 
-def print_parsed_forecasts_from_db(weather_channel_, datestr_):
+def print_reparsed_forecasts_from_db(weather_channel_, datestr_):
 	t = get_nearest_raw_forecast_time_retrieved(weather_channel_, datestr_)
 	if t is None:
 		print 'No rows found'
