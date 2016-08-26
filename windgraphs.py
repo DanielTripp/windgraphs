@@ -290,11 +290,9 @@ def insert_raw_forecast_into_db(weather_channel_, web_response_str_, time_retrie
 @lock
 @trans
 def insert_parsed_forecasts_into_db(forecasts_):
-	time_retrieved_em = now_em()
-	time_retrieved_str = em_to_str(time_retrieved_em )
 	for forecast in forecasts_:
 		curs = db_conn().cursor()
-		cols = [forecast.weather_channel, time_retrieved_em, time_retrieved_str, forecast.target_time, 
+		cols = [forecast.weather_channel, forecast.time_retrieved, em_to_str(forecast.time_retrieved), forecast.target_time, 
 				em_to_str(forecast.target_time), forecast.base_wind, forecast.gust_wind]
 		curs.execute('INSERT INTO wind_forecasts_parsed VALUES (%s,%s,%s,%s,%s,%s,%s)', cols)
 		curs.close()
@@ -344,7 +342,6 @@ def print_parsed_observation_from_db(datestr_):
 
 def print_parsed_forecasts_from_db(weather_channel_, datestr_):
 	t = get_nearest_raw_forecast_time_retrieved(weather_channel_, datestr_)
-	print t
 	if t is None:
 		print 'No rows found'
 	else:
@@ -492,7 +489,6 @@ def print_raw_observation_from_db(datestr_):
 
 def print_raw_forecast_from_db(weather_channel_, datestr_):
 	t = get_nearest_raw_forecast_time_retrieved(weather_channel_, datestr_)
-	print t
 	if t is None:
 		print 'No rows found'
 	else:
@@ -572,7 +568,44 @@ def get_forecast_parsed(weather_channel_, time_retrieved_exact_, target_time_):
 	r = Forecast(weather_channel_, time_retrieved_exact_, target_time_, base_wind, gust_wind)
 	return r
 
-def t(): # tdr 
+def backfill_reparse_raw_forecast_in_db(weather_channel_, datestr_):
+	t = get_nearest_raw_forecast_time_retrieved(weather_channel_, datestr_)
+	if t is None:
+		print 'No rows found'
+	else:
+		print t
+		print em_to_str(t)
+		print 
+		web_response = get_raw_forecast_from_db(weather_channel_, t)
+		if weather_channel_ == 'wg':
+			forecasts = windguru_parse_web_response(web_response, t)
+		elif weather_channel_ in ('wf_reg', 'wf_sup'):
+			forecasts = windfinder_parse_web_response(web_response, weather_channel_, t)
+		else:
+			raise Exception('unknown weather channel')
+		print 'Got %d forecasts.' % len(forecasts)
+		for forecast in forecasts:
+			print forecast
+		if do_any_parsed_forecasts_exist_near_time_retrieved(weather_channel_, t, 1000*60*10):
+			raise Exception('Some parsed forecasts near that time already exist in the database.')
+		insert_parsed_forecasts_into_db(forecasts)
+		print 'Inserted forecasts OK.'
+
+def do_any_parsed_forecasts_exist_near_time_retrieved(weather_channel_, t_, tolerance_):
+	curs = db_conn().cursor()
+	try:
+		sqlstr = '''select time_retrieved from wind_forecasts_parsed where time_retrieved between %s and %s and 
+				weather_channel like %s limit 1'''
+		cols = [t_ - tolerance_, t_ + tolerance_, weather_channel_+'%']
+		curs.execute(sqlstr, cols)
+		r = False
+		for row in curs:
+			r = True
+		return r
+	finally:
+		curs.close()
+
+def t_plot(): # tdr 
 	target_time_of_day = datetime.time(17, 00)
 	weather_check_hours_in_advance = 28
 	num_target_days = 20
