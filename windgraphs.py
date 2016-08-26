@@ -333,7 +333,7 @@ def get_raw_observation_from_db(t_):
 	curs.close()
 	return r
 
-def print_parsed_observation_from_db(datestr_):
+def print_reparsed_observation_from_db(datestr_):
 	t = get_nearest_time_retrieved('wind_observations_raw', datestr_)
 	if t is None:
 		print 'No rows found'
