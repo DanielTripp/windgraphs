@@ -354,8 +354,8 @@ def print_parsed_forecasts_from_db(weather_channel_, datestr_):
 		web_response = get_raw_forecast_from_db(weather_channel_, t)
 		if weather_channel_ == 'wg':
 			forecasts = windguru_parse_web_response(web_response, t)
-		elif weather_channel_ == 'wf':
-			forecasts = windfinder_parse_web_response(web_response, t)
+		elif weather_channel_ in ('wf_reg', 'wf_sup'):
+			forecasts = windfinder_parse_web_response(web_response, weather_channel_, t)
 		else:
 			raise Exception()
 		for forecast in forecasts:
