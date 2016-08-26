@@ -371,15 +371,15 @@ def get_observations_and_insert_into_db():
 def get_all_forecasts_and_insert_into_db():
 	try:
 		windfinderregular_get_forecast_and_insert_into_db()
-	except
+	except:
 		traceback.print_exc()
 	try:
 		windfindersuper_get_forecast_and_insert_into_db()
-	except
+	except:
 		traceback.print_exc()
 	try:
 		windguru_get_forecast_and_insert_into_db()
-	except
+	except:
 		traceback.print_exc()
 
 def get_forecast_near_time_retrieveds(weather_channel_, time_retrieved_approx_, target_time_, sooner_aot_later_, maxrows_, time_span_):
