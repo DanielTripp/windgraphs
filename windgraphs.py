@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-import sys, urllib2, json, pprint, re, datetime, os, threading
+import sys, urllib2, json, pprint, re, datetime, os, threading, traceback
 import dateutil.parser, dateutil.tz
 import BeautifulSoup
 import psycopg2
@@ -365,9 +365,18 @@ def get_observations_and_insert_into_db():
 	insert_parsed_observation_into_db(parsed_observation)
 
 def get_all_forecasts_and_insert_into_db():
-	windfinderregular_get_forecast_and_insert_into_db()
-	windfindersuper_get_forecast_and_insert_into_db()
-	windguru_get_forecast_and_insert_into_db()
+	try:
+		windfinderregular_get_forecast_and_insert_into_db()
+	except
+		traceback.print_exc()
+	try:
+		windfindersuper_get_forecast_and_insert_into_db()
+	except
+		traceback.print_exc()
+	try:
+		windguru_get_forecast_and_insert_into_db()
+	except
+		traceback.print_exc()
 
 def get_forecast_near_time_retrieveds(weather_channel_, time_retrieved_approx_, target_time_, sooner_aot_later_, maxrows_, time_span_):
 	assert isinstance(time_retrieved_approx_, long)
