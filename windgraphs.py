@@ -6,10 +6,10 @@ import BeautifulSoup
 import psycopg2
 import matplotlib
 matplotlib.use('Agg')
+import matplotlib.dates
 import matplotlib.pyplot as plt
-import matplotlib.dates as mpldates # tdr?   not used? 
 import matplotlib.ticker as ticker
-import matplotlib.transforms # tdr?  not used? 
+import pylab
 from misc import *
 
 PARSED_WEATHER_CHANNELS = ['wf_reg', 'wf_sup', 'wg_gfs', 'wg_nam', 'wg_hrw'] 
@@ -154,7 +154,7 @@ def windfinder_parse_web_response(web_response_str_, weather_channel_, time_retr
 			dayte = parent(y, 7).findAll('div', {'class': 'weathertable__header'}, recursive=False)[0].string.strip()
 			dayte = re.sub('^.*? ', '', dayte)
 			tyme = parent(y, 5).findAll('span', {'class': 'value'})[0].string
-			cur_year = datetime.datetime.today().year # Danger - if backfilling in January - this will be a bug. 
+			cur_year = datetime.datetime.today().year # Danger - if backfilling data from a previous year, this will be a bug. 
 			daytetyme = datetime_to_em(datetime.datetime.strptime('%s %d %s:00' % (dayte, cur_year, tyme), '%b %d %Y %H:%M'))
 			r.append(Forecast(weather_channel_, time_retrieved_, daytetyme, windspeed, windgusts))
 	return r
@@ -387,10 +387,9 @@ def get_forecast_near_time_retrieveds(weather_channel_, time_retrieved_approx_, 
 	assert isinstance(target_time_, long)
 	sign = ('>=' if sooner_aot_later_ else '<=')
 	order = ('asc' if sooner_aot_later_ else 'desc')
-	table = 'wind_forecasts_parsed'
-	sqlstr = '''select time_retrieved from %s where target_time = %d and time_retrieved %s %d and weather_channel = '%s' 
-			order by time_retrieved %s limit %d''' % (table, target_time_, sign, time_retrieved_approx_, weather_channel_, 
-			order, maxrows_)
+	sqlstr = '''select time_retrieved from wind_forecasts_parsed where target_time = %d and time_retrieved %s %d 
+			and weather_channel = '%s' order by time_retrieved %s limit %d''' % \
+			(target_time_, sign, time_retrieved_approx_, weather_channel_, order, maxrows_)
 	curs = db_conn().cursor()
 	try:
 		curs.execute(sqlstr)
@@ -650,17 +649,19 @@ def t_plot(): # tdr
 					channel_to_yvals[channel].append(forecast.base_wind)
 		print '---'
 
+	plt.plot(observation_xvals, observation_yvals, color='black', marker='o', markeredgewidth=12, 
+			linestyle='solid', linewidth=6)
+
 	for channel in channel_to_xvals.keys():
 		color = WEATHER_CHANNEL_TO_COLOR[channel]
 		plt.plot(channel_to_xvals[channel], channel_to_yvals[channel], color=color, 
 				marker='o', markeredgewidth=6, markeredgecolor=color, linestyle='solid', linewidth=4)
 
-	plt.plot(observation_xvals, observation_yvals, color='black', marker='o', markeredgewidth=6, 
-			linestyle='solid', linewidth=6)
-
 	plt.xlim(em_to_datetime(target_times[0]-1000*60*60*24), em_to_datetime(target_times[-1]+1000*60*60*24))
 
 	fig.autofmt_xdate()
+	ax.xaxis.set_major_formatter(matplotlib.dates.DateFormatter('%b %d'))
+	ax.xaxis.set_major_locator(matplotlib.ticker.FixedLocator([pylab.date2num(x) for x in observation_xvals]))
 
 	out_png_filename = 'd-plot.png'
 	output_directory = '.'

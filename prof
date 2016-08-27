@@ -1,0 +1,22 @@
+#!/usr/bin/env python
+
+import sys, subprocess
+from misc import *
+
+if len(sys.argv) < 3:
+	sys.exit('''Need at least two arguments:
+1) moniker for the profile data to output 
+2) filename of python script (plus maybe arguments for it).''')
+
+profile_moniker = sys.argv[1]
+profile_data_filename = '/tmp/%s.profile' % (profile_moniker)
+py_script_filename = sys.argv[2]
+if not py_script_filename.endswith('.py'):
+	sys.exit('python script filename "%s" doesn\'t end with ".py"' % py_script_filename)
+py_script_args = sys.argv[3:]
+
+subprocess.check_call([sys.executable, '-O', '-m', 'cProfile', '-o', profile_data_filename] 
+		+ [py_script_filename] + py_script_args)
+
+profile_data_to_svg_file(profile_data_filename)
+
