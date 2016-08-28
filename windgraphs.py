@@ -10,6 +10,7 @@ import matplotlib.dates
 import matplotlib.pyplot as plt
 import matplotlib.ticker as ticker
 import pylab
+import numpy as np
 from misc import *
 
 PARSED_WEATHER_CHANNELS = ['wf_reg', 'wf_sup', 'wg_gfs', 'wg_nam', 'wg_hrw'] 
@@ -564,22 +565,6 @@ def get_averaged_observations_from_db(target_time_, start_date_, num_days_):
 			r[daytetyme] = observation
 	return r
 
-def get_forecast_parsed(weather_channel_, time_retrieved_exact_, target_time_):
-	sqlstr = '''select base_wind, gust_wind from wind_forecasts_parsed where target_time = %d and time_retrieved = %d 
-			and weather_channel = '%s' ''' % (target_time_, time_retrieved_exact_, weather_channel_)
-	curs = db_conn().cursor()
-	try:
-		curs.execute(sqlstr)
-		for row in curs:
-			base_wind, gust_wind = row
-			break
-		else:
-			raise Exception()
-	finally:
-		curs.close()
-	r = Forecast(weather_channel_, time_retrieved_exact_, target_time_, base_wind, gust_wind)
-	return r
-
 def backfill_reparse_raw_forecast_in_db(weather_channel_, datestr_):
 	t = get_nearest_raw_forecast_time_retrieved(weather_channel_, datestr_)
 	if t is None:
@@ -617,10 +602,38 @@ def do_any_parsed_forecasts_exist_near_time_retrieved(weather_channel_, t_, tole
 	finally:
 		curs.close()
 
+# Get a forecast for near the specified time retrieved.  (Not near the target 
+# time - target time is taken as exact.)
+def get_forecast_parsed_near(channel_, time_retrieved_, target_time_):
+	curs = db_conn().cursor()
+	try:
+		# Thanks to http://stackoverflow.com/a/6103352 for this SQL 
+		sqlstr = '''SELECT * FROM 
+			(
+				(SELECT %(get_cols)s FROM %(table)s WHERE %(where)s and %(t)s >= %%s and %(t)s <= %%s ORDER BY %(t)s      LIMIT 1) 
+				UNION ALL
+				(SELECT %(get_cols)s FROM %(table)s WHERE %(where)s and %(t)s <  %%s and %(t)s >= %%s ORDER BY %(t)s DESC LIMIT 1) 
+			) as f 
+			ORDER BY abs(%%s-time_retrieved) LIMIT 1
+			''' % {'get_cols': 'weather_channel, time_retrieved, target_time, base_wind, gust_wind', 
+						'table': 'wind_forecasts_parsed', 't': 'time_retrieved', 
+						'where': 'weather_channel = %s and target_time = %s'}
+		tolerance = 1000*60*30
+		cols = [channel_, target_time_, time_retrieved_, time_retrieved_+tolerance, 
+				channel_, target_time_, time_retrieved_, time_retrieved_-tolerance, 
+				time_retrieved_]
+		curs.execute(sqlstr, cols)
+		r = None
+		for row in curs:
+			r = Forecast(*row)
+		return r
+	finally:
+		curs.close()
+
 def t_plot(): # tdr 
 	target_time_of_day = datetime.time(17, 00)
 	weather_check_hours_in_advance = 28
-	num_target_days = 20
+	num_target_days = 30
 
 	plt.figure(1)
 	fig, ax = plt.subplots()
@@ -642,14 +655,13 @@ def t_plot(): # tdr
 			observation_yvals.append(observation.base_wind)
 			for channel in PARSED_WEATHER_CHANNELS:
 				print channel 
-				time_retrieved = get_forecast_nearest_time_retrieved(channel, check_weather_t, target_t)
-				if time_retrieved is not None:
-					forecast = get_forecast_parsed(channel, time_retrieved, target_t)
+				forecast = get_forecast_parsed_near(channel, check_weather_t, target_t)
+				if forecast is not None:
 					channel_to_xvals[channel].append(em_to_datetime(target_t))
 					channel_to_yvals[channel].append(forecast.base_wind)
 		print '---'
 
-	plt.plot(observation_xvals, observation_yvals, color='black', marker='o', markeredgewidth=12, 
+	plt.plot(observation_xvals, observation_yvals, color='black', marker='o', markeredgewidth=11, 
 			linestyle='solid', linewidth=6)
 
 	for channel in channel_to_xvals.keys():
@@ -662,6 +674,12 @@ def t_plot(): # tdr
 	fig.autofmt_xdate()
 	ax.xaxis.set_major_formatter(matplotlib.dates.DateFormatter('%b %d'))
 	ax.xaxis.set_major_locator(matplotlib.ticker.FixedLocator([pylab.date2num(x) for x in observation_xvals]))
+
+	max_yval = max(observation_yvals + sum(channel_to_yvals.itervalues(), []))
+
+	for y in range(0, max_yval+5, 5):
+		plt.axhline(y, color=(0.5,0.5,0.5), alpha=0.5, linestyle='-')
+	plt.yticks(np.arange(0, max_yval+5, 5)) # Do this after the axhline() calls or else the min value might not be respected. 
 
 	out_png_filename = 'd-plot.png'
 	output_directory = '.'
