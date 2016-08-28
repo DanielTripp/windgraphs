@@ -5,5 +5,5 @@ import windgraphs
 
 if __name__ == '__main__':
 
-	windgraphs.t()
+	windgraphs.t_plot()
 
