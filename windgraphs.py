@@ -295,12 +295,17 @@ def insert_raw_forecast_into_db(weather_channel_, web_response_str_, time_retrie
 @lock
 @trans
 def insert_parsed_forecasts_into_db(forecasts_):
-	for forecast in forecasts_:
-		curs = db_conn().cursor()
-		cols = [forecast.weather_channel, forecast.time_retrieved, em_to_str(forecast.time_retrieved), forecast.target_time, 
-				em_to_str(forecast.target_time), forecast.base_wind, forecast.gust_wind]
-		curs.execute('INSERT INTO wind_forecasts_parsed VALUES (%s,%s,%s,%s,%s,%s,%s)', cols)
+	curs = db_conn().cursor()
+	try:
+		for forecast in forecasts_:
+			insert_parsed_forecast_into_db(curs, forecast)
+	finally:
 		curs.close()
+
+def insert_parsed_forecast_into_db(curs_, forecast_):
+	cols = [forecast_.weather_channel, forecast_.time_retrieved, em_to_str(forecast_.time_retrieved), forecast_.target_time, 
+			em_to_str(forecast_.target_time), forecast_.base_wind, forecast_.gust_wind]
+	curs_.execute('INSERT INTO wind_forecasts_parsed VALUES (%s,%s,%s,%s,%s,%s,%s)', cols)
 
 @lock
 @trans
@@ -316,10 +321,12 @@ def insert_raw_observation_into_db(web_response_str_):
 @trans
 def insert_parsed_observation_into_db(obs_):
 	curs = db_conn().cursor()
-	time_retrieved_str = em_to_str(obs_.time_retrieved)
-	cols = [obs_.time_retrieved, time_retrieved_str, obs_.base_wind, obs_.gust_wind]
-	curs.execute('INSERT INTO wind_observations_parsed VALUES (%s,%s,%s,%s)', cols)
-	curs.close()
+	try:
+		time_retrieved_str = em_to_str(obs_.time_retrieved)
+		cols = [obs_.time_retrieved, time_retrieved_str, obs_.base_wind, obs_.gust_wind]
+		curs.execute('INSERT INTO wind_observations_parsed VALUES (%s,%s,%s,%s)', cols)
+	finally:
+		curs.close()
 
 def get_raw_observation_from_db(t_):
 	sqlstr = 'select content from wind_observations_raw where time_retrieved = %d' % (t_)
@@ -630,16 +637,112 @@ def get_forecast_parsed_near(channel_, time_retrieved_, target_time_):
 	finally:
 		curs.close()
 
+# Database select template: 
+def f________________________():
+	curs = db_conn().cursor()
+	try:
+		sqlstr = '''select from wind_observations_parsed where time_retrieved = %s'''
+		cols = [xyz]
+		curs.execute(sqlstr, cols)
+		for row in curs:
+			pass
+	finally:
+		curs.close()
+
+def date_to_em(date_):
+	assert isinstance(date_, datetime.date)
+	return int(time.mktime(date_.timetuple())*1000)
+
+def delete_parsed_observations(up_to_time_em_):
+	curs = db_conn().cursor()
+	try:
+		sqlstr = '''delete from wind_observations_parsed where time_retrieved <= %s'''
+		cols = [up_to_time_em_]
+		curs.execute(sqlstr, cols)
+	finally:
+		curs.close()
+
+def delete_parsed_forecasts(up_to_time_em_):
+	curs = db_conn().cursor()
+	try:
+		sqlstr = '''delete from wind_forecasts_parsed where time_retrieved <= %s'''
+		cols = [up_to_time_em_]
+		curs.execute(sqlstr, cols)
+	finally:
+		curs.close()
+
+@lock
+@trans
+def copy_db_data_for_testing():
+	dest_end_em = date_to_em(datetime.date(1980, 8, 28))
+	src_end_em = date_to_em(datetime.date(2016, 8, 28))
+	delete_parsed_observations(dest_end_em)
+	delete_parsed_forecasts(dest_end_em)
+	time_window = 1000*60*60*24*30
+	copy_parsed_observations_for_testing(src_end_em, dest_end_em, time_window)
+	copy_parsed_forecasts_for_testing(src_end_em, dest_end_em, time_window)
+
+@lock
+@trans
+def copy_parsed_forecasts_for_testing(src_end_em_, dest_end_em_, time_window_):
+	curs = db_conn().cursor()
+	try:
+		sqlstr = '''select weather_channel, time_retrieved, target_time, base_wind, gust_wind from wind_forecasts_parsed 
+				where time_retrieved between %s and %s and target_time < time_retrieved + 1000*60*60*24*2'''
+		cols = [src_end_em_ - time_window_ - 1000*60*60*24*7, src_end_em_]
+		curs.execute(sqlstr, cols)
+		curs2 = db_conn().cursor()
+		try:
+			i = 0 # tdr 
+			for row in curs:
+				weather_channel = row[0]
+				time_offset = dest_end_em_ - src_end_em_
+				src_time_retrieved = row[1]
+				dest_time_retrieved = src_time_retrieved + time_offset
+				src_target_time = row[2]
+				dest_target_time = src_target_time + time_offset
+				base_wind = row[3]
+				gust_wind = row[4]
+				forecast = Forecast(weather_channel, dest_time_retrieved, dest_target_time, base_wind, gust_wind)
+				i += 1 # tdr 
+				if i % 1000 == 0:
+					print i
+				insert_parsed_forecast_into_db(curs2, forecast)
+		finally:
+			curs2.close()
+	finally:
+		curs.close()
+
+@lock
+@trans
+def copy_parsed_observations_for_testing(src_end_em_, dest_end_em_, time_window_):
+	curs = db_conn().cursor()
+	try:
+		sqlstr = '''select time_retrieved, base_wind, gust_wind from wind_observations_parsed 
+				where time_retrieved between %s and %s'''
+		cols = [src_end_em_ - time_window_, src_end_em_]
+		curs.execute(sqlstr, cols)
+		for row in curs:
+			src_time_retrieved = row[0]
+			dest_time_retrieved = dest_end_em_ - (src_end_em_ - src_time_retrieved)
+			base_wind = row[1]
+			gust_wind = row[2]
+			obs = Observation(dest_time_retrieved, base_wind, base_wind)
+			insert_parsed_observation_into_db(obs)
+	finally:
+		curs.close()
+
 def t_plot(): # tdr 
 	target_time_of_day = datetime.time(17, 00)
-	weather_check_hours_in_advance = 28
-	num_target_days = 30
+	weather_check_hours_in_advance = 2
+	num_target_days = 4
 
 	plt.figure(1)
 	fig, ax = plt.subplots()
 	fig.set_size_inches(15, 8)
 
-	days = get_days(datetime.date.today(), num_target_days)
+	today = datetime.date(1980, 8, 28)
+	days = get_days(today, num_target_days)
 	target_times = [datetime_to_em(datetime.datetime.combine(target_day, target_time_of_day)) for target_day in days]
 	channel_to_xvals = defaultdict(lambda: [])
 	channel_to_yvals = defaultdict(lambda: [])
@@ -648,18 +751,15 @@ def t_plot(): # tdr
 	for target_t in target_times:
 		check_weather_t = target_t - 1000*60*60*weather_check_hours_in_advance
 
-		print 'target time:', em_to_str(target_t)
 		observation = get_averaged_observation_from_db(target_t)
 		if observation is not None:
 			observation_xvals.append(em_to_datetime(target_t))
 			observation_yvals.append(observation.base_wind)
 			for channel in PARSED_WEATHER_CHANNELS:
-				print channel 
 				forecast = get_forecast_parsed_near(channel, check_weather_t, target_t)
 				if forecast is not None:
 					channel_to_xvals[channel].append(em_to_datetime(target_t))
 					channel_to_yvals[channel].append(forecast.base_wind)
-		print '---'
 
 	plt.plot(observation_xvals, observation_yvals, color='black', marker='o', markeredgewidth=11, 
 			linestyle='solid', linewidth=6)
@@ -672,7 +772,7 @@ def t_plot(): # tdr
 	plt.xlim(em_to_datetime(target_times[0]-1000*60*60*24), em_to_datetime(target_times[-1]+1000*60*60*24))
 
 	fig.autofmt_xdate()
-	ax.xaxis.set_major_formatter(matplotlib.dates.DateFormatter('%b %d'))
+	ax.xaxis.set_major_formatter(matplotlib.dates.DateFormatter('%b %d %Y'))
 	ax.xaxis.set_major_locator(matplotlib.ticker.FixedLocator([pylab.date2num(x) for x in observation_xvals]))
 
 	max_yval = max(observation_yvals + sum(channel_to_yvals.itervalues(), []))
