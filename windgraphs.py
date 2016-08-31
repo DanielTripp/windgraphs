@@ -735,7 +735,7 @@ def copy_parsed_observations_for_testing(src_end_em_, dest_end_em_, time_window_
 def t_plot(): # tdr 
 	target_time_of_day = datetime.time(17, 00)
 	weather_check_hours_in_advance = 2
-	num_target_days = 4
+	num_target_days = 6
 
 	plt.figure(1)
 	fig, ax = plt.subplots()
@@ -772,7 +772,8 @@ def t_plot(): # tdr
 	plt.xlim(em_to_datetime(target_times[0]-1000*60*60*24), em_to_datetime(target_times[-1]+1000*60*60*24))
 
 	fig.autofmt_xdate()
-	ax.xaxis.set_major_formatter(matplotlib.dates.DateFormatter('%b %d %Y'))
+	date_format = ('%b %d %Y' if today < datetime.date(1990, 1, 1) else '%b %d') # Include year for testing time frames 
+	ax.xaxis.set_major_formatter(matplotlib.dates.DateFormatter(date_format))
 	ax.xaxis.set_major_locator(matplotlib.ticker.FixedLocator([pylab.date2num(x) for x in observation_xvals]))
 
 	max_yval = max(observation_yvals + sum(channel_to_yvals.itervalues(), []))
