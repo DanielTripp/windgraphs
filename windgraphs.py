@@ -217,6 +217,7 @@ def windguru_parse_web_response(web_response_str_, time_retrieved_):
 						for i in range(len(windspeeds))[::-1]:
 							speed = windspeeds[i]
 							gusts = windgusts[i]
+							# I think that this code is here to handle cases like 2016-08-31 14:00 - 23:00: 
 							if speed is None:
 								print 'Omitting WindGuru %s reading #%d (day=%s, hour=%s) on account of null data.  speed=%s, gusts=%s.' \
 										% (model_to_weatherchannel[model], i, days[i], hours[i], speed, gusts)
