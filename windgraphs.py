@@ -198,6 +198,13 @@ def windguru_parse_web_response(web_response_str_, time_retrieved_):
 						windspeeds = data['WINDSPD']
 						windgusts = data['GUST']
 						days = to_ints(data['hr_d'])
+						hours = to_ints(data['hr_h'])
+						# I think I saw one of these lists have an extra element once.  I forget when. 
+						n = min(len(l) for l in (windspeeds, windgusts, days, hours))
+						windspeeds = windspeeds[:n]
+						windgusts = windgusts[:n]
+						days = days[:n]
+						hours = hours[:n]
 						day_retrieved = retrieved_datetime.day
 						# Sometimes data for days before today is included, and sometimes 
 						# some of the speed / gust data for in those days is null.  eg.  
@@ -206,11 +213,23 @@ def windguru_parse_web_response(web_response_str_, time_retrieved_):
 						for cutoff_idx, day in enumerate(days):
 							if day == day_retrieved:
 								break
+						assert len(windspeeds) == len(windgusts) == len(days) == len(hours) 
+						for i in range(len(windspeeds))[::-1]:
+							speed = windspeeds[i]
+							gusts = windgusts[i]
+							if speed is None:
+								print 'Omitting WindGuru %s reading #%d (day=%s, hour=%s) on account of null data.  speed=%s, gusts=%s.' \
+										% (model_to_weatherchannel[model], i, days[i], hours[i], speed, gusts)
+								for l in (windspeeds, windgusts, days, hours):
+									del l[i]
+							elif speed is not None and gusts is None:
+								print 'Fudging WindGuru %s reading #%d (day=%s, hour=%s) on account of null gusts.  Setting gusts to speed (%s).' \
+										% (model_to_weatherchannel[model], i, days[i], hours[i], speed)
+								windgusts[i] = windspeeds[i]
 						days = days[cutoff_idx:]
-						hours = to_ints(data['hr_h'][cutoff_idx:])
+						hours = hours[cutoff_idx:]
 						windspeeds = to_ints(windspeeds[cutoff_idx:])
 						windgusts = to_ints(windgusts[cutoff_idx:])
-						assert len(windspeeds) == len(windgusts) == len(days) == len(hours) 
 						for day, hour, windspeed, windgust in zip(days, hours, windspeeds, windgusts):
 							month = (retrieved_month if day >= retrieved_day else retrieved_month+1)
 							daytetyme = datetime.datetime.strptime('%02d-%02d %02d:00 %d' % (month, day, hour, retrieved_year), '%m-%d %H:%M %Y')
@@ -693,7 +712,6 @@ def copy_parsed_forecasts_for_testing(src_end_em_, dest_end_em_, time_window_):
 		curs.execute(sqlstr, cols)
 		curs2 = db_conn().cursor()
 		try:
-			i = 0 # tdr 
 			for row in curs:
 				weather_channel = row[0]
 				time_offset = dest_end_em_ - src_end_em_
@@ -704,9 +722,6 @@ def copy_parsed_forecasts_for_testing(src_end_em_, dest_end_em_, time_window_):
 				base_wind = row[3]
 				gust_wind = row[4]
 				forecast = Forecast(weather_channel, dest_time_retrieved, dest_target_time, base_wind, gust_wind)
-				i += 1 # tdr 
-				if i % 1000 == 0:
-					print i
 				insert_parsed_forecast_into_db(curs2, forecast)
 		finally:
 			curs2.close()
