@@ -748,24 +748,22 @@ def copy_parsed_observations_for_testing(src_end_em_, dest_end_em_, time_window_
 	finally:
 		curs.close()
 
-def t_plot(): # tdr 
-	target_time_of_day = datetime.time(17, 00)
-	weather_check_hours_in_advance = 2
-	num_target_days = 6
+def get_png(target_time_of_day_, weather_check_num_hours_in_advance_, num_days_):
+	target_time_of_day = datetime.time(target_time_of_day_, 00)
 
 	plt.figure(1)
 	fig, ax = plt.subplots()
 	fig.set_size_inches(15, 8)
 
 	today = datetime.date(1980, 8, 28)
-	days = get_days(today, num_target_days)
+	days = get_days(today, num_days_)
 	target_times = [datetime_to_em(datetime.datetime.combine(target_day, target_time_of_day)) for target_day in days]
 	channel_to_xvals = defaultdict(lambda: [])
 	channel_to_yvals = defaultdict(lambda: [])
 	observation_xvals = []
 	observation_yvals = []
 	for target_t in target_times:
-		check_weather_t = target_t - 1000*60*60*weather_check_hours_in_advance
+		check_weather_t = target_t - 1000*60*60*weather_check_num_hours_in_advance_
 
 		observation = get_averaged_observation_from_db(target_t)
 		if observation is not None:
@@ -798,9 +796,16 @@ def t_plot(): # tdr
 		plt.axhline(y, color=(0.5,0.5,0.5), alpha=0.5, linestyle='-')
 	plt.yticks(np.arange(0, max_yval+5, 5)) # Do this after the axhline() calls or else the min value might not be respected. 
 
-	out_png_filename = 'd-plot.png'
+	out_png_filename = 'd-plot-web.png'
 	output_directory = '.'
 	plt.savefig(os.path.join(output_directory, out_png_filename), bbox_inches='tight')
+
+	with open(out_png_filename) as fin:
+		r = fin.read()
+
+	os.remove(out_png_filename)
+
+	return r
 
 if __name__ == '__main__':
 
