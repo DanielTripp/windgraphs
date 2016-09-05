@@ -814,6 +814,8 @@ def get_png(target_time_of_day_, weather_check_num_hours_in_advance_, end_date_,
 		plt.axhline(y, color=(0.5,0.5,0.5), alpha=0.5, linestyle='-')
 	plt.yticks(np.arange(0, max_yval+5, 5)) # Do this after the axhline() calls or else the min value might not be respected. 
 
+	plt.ylabel('Average wind (knots)')
+
 	buf = io.BytesIO()
 	plt.savefig(buf, bbox_inches='tight')
 	buf.seek(0)
