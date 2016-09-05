@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-import sys, urllib2, json, pprint, re, datetime, os, threading, traceback
+import sys, urllib2, json, pprint, re, datetime, os, threading, traceback, io
 import dateutil.parser, dateutil.tz
 import BeautifulSoup
 import psycopg2
@@ -814,14 +814,11 @@ def get_png(target_time_of_day_, weather_check_num_hours_in_advance_, end_date_,
 		plt.axhline(y, color=(0.5,0.5,0.5), alpha=0.5, linestyle='-')
 	plt.yticks(np.arange(0, max_yval+5, 5)) # Do this after the axhline() calls or else the min value might not be respected. 
 
-	out_png_filename = 'd-plot-web.png'
-	output_directory = '.'
-	plt.savefig(os.path.join(output_directory, out_png_filename), bbox_inches='tight')
-
-	with open(out_png_filename) as fin:
-		r = fin.read()
-
-	os.remove(out_png_filename)
+	buf = io.BytesIO()
+	plt.savefig(buf, bbox_inches='tight')
+	buf.seek(0)
+	r = buf.read()
+	printerr('after %d bytes' % len(r)) # tdr 
 
 	return r
 
