@@ -808,6 +808,7 @@ def get_png(target_time_of_day_, weather_check_num_hours_in_advance_, end_date_,
 	for forecast_runs in forecast_channel_to_runs.itervalues():
 		for forecast_run in forecast_runs:
 			max_yval = max(max_yval, max(yvals(forecast_run)))
+	max_yval += 1
 
 	for y in range(0, max_yval+5, 5):
 		plt.axhline(y, color=(0.5,0.5,0.5), alpha=0.5, linestyle='-')

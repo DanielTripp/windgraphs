@@ -5,7 +5,16 @@
 	<script src="sprintf.min.js"></script>
 	<script type="text/javascript">
 
+function on_img_loaded_ok() {
+}
+
+function on_img_loaded_error() {
+	$("#img").attr("src", "error.png");
+}
+
 function initialize() {
+	$("#img")[0].addEventListener('load', on_img_loaded_ok);
+	$("#img")[0].addEventListener('error', on_img_loaded_error);
 	update_img_from_controls();
 }
 
@@ -19,7 +28,10 @@ function update_img_from_controls() {
 
 function update_img(target_time_, weather_check_num_hours_, end_date_, num_days_) {
 	var url = get_img_url(target_time_, weather_check_num_hours_, end_date_, num_days_);
-	$("#img").attr("src", url);
+	$("#img").attr("src", "loading.gif");
+	setTimeout(function() { 
+			$("#img").attr("src", url);
+		}, 1);
 }
 
 function get_img_url(target_time_, weather_check_num_hours_, end_date_, num_days_) {
@@ -68,7 +80,7 @@ $(document).ready(initialize);
 		Number of days to graph: <input id="num_days_field" type="text" value="7"></input>
 		<br>
 		<br>
-		<button onclick="">Submit</button>
+		<button onclick="update_img_from_controls()">Submit</button>
 		<br>
 		<br>
 		<img id="img" src="">
