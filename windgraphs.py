@@ -757,39 +757,57 @@ def get_png(target_time_of_day_, weather_check_num_hours_in_advance_, end_date_,
 
 	days = get_days(end_date_, num_days_)
 	target_times = [datetime_to_em(datetime.datetime.combine(target_day, target_time_of_day)) for target_day in days]
-	channel_to_xvals = defaultdict(lambda: [])
-	channel_to_yvals = defaultdict(lambda: [])
-	observation_xvals = []
-	observation_yvals = []
+	forecast_channel_to_runs = defaultdict(lambda: [[]])
+	observation_runs = [[]]
 	for target_t in target_times:
 		check_weather_t = target_t - 1000*60*60*weather_check_num_hours_in_advance_
 
 		observation = get_averaged_observation_from_db(target_t)
-		if observation is not None:
-			observation_xvals.append(em_to_datetime(target_t))
-			observation_yvals.append(observation.base_wind)
+		if observation is None:
+			observation_runs.append([])
+		else:
+			observation_runs[-1].append((em_to_datetime(target_t), observation.base_wind))
 			for channel in PARSED_WEATHER_CHANNELS:
 				forecast = get_forecast_parsed_near(channel, check_weather_t, target_t)
-				if forecast is not None:
-					channel_to_xvals[channel].append(em_to_datetime(target_t))
-					channel_to_yvals[channel].append(forecast.base_wind)
+				if forecast is None:
+					forecast_channel_to_runs[channel].append([])
+				else:
+					forecast_channel_to_runs[channel][-1].append((em_to_datetime(target_t), forecast.base_wind))
 
-	plt.plot(observation_xvals, observation_yvals, color='black', marker='o', markeredgewidth=11, 
-			linestyle='solid', linewidth=6)
+	observation_runs = [e for e in observation_runs if len(e) > 0]
 
-	for channel in channel_to_xvals.keys():
+	for forecast_runs in forecast_channel_to_runs.itervalues():
+		forecast_runs[:] = [e for e in forecast_runs if len(e) > 0]
+
+	def xvals(run__):
+		return [e[0] for e in run__]
+
+	def yvals(run__):
+		return [e[1] for e in run__]
+
+	for run in observation_runs:
+		plt.plot(xvals(run), yvals(run), color='black', marker='o', markeredgewidth=11, 
+				linestyle='solid', linewidth=6)
+
+	for channel in forecast_channel_to_runs.keys():
 		color = WEATHER_CHANNEL_TO_COLOR[channel]
-		plt.plot(channel_to_xvals[channel], channel_to_yvals[channel], color=color, 
-				marker='o', markeredgewidth=6, markeredgecolor=color, linestyle='solid', linewidth=4)
+		for forecast_run in forecast_channel_to_runs[channel]:
+			plt.plot(xvals(forecast_run), yvals(forecast_run), color=color, 
+					marker='o', markeredgewidth=6, markeredgecolor=color, linestyle='solid', linewidth=4)
 
 	plt.xlim(em_to_datetime(target_times[0]-1000*60*60*24), em_to_datetime(target_times[-1]+1000*60*60*24))
 
 	fig.autofmt_xdate()
 	date_format = ('%b %d %Y' if end_date_ < datetime.date(1990, 1, 1) else '%b %d') # Include year for testing time frames 
 	ax.xaxis.set_major_formatter(matplotlib.dates.DateFormatter(date_format))
-	ax.xaxis.set_major_locator(matplotlib.ticker.FixedLocator([pylab.date2num(x) for x in observation_xvals]))
+	ax.xaxis.set_major_locator(matplotlib.ticker.FixedLocator([pylab.date2num(em_to_datetime(x)) for x in target_times]))
 
-	max_yval = max(observation_yvals + sum(channel_to_yvals.itervalues(), []))
+	max_yval = 1
+	for observation_run in observation_runs:
+		max_yval = max(max_yval, max(yvals(observation_run)))
+	for forecast_runs in forecast_channel_to_runs.itervalues():
+		for forecast_run in forecast_runs:
+			max_yval = max(max_yval, max(yvals(forecast_run)))
 
 	for y in range(0, max_yval+5, 5):
 		plt.axhline(y, color=(0.5,0.5,0.5), alpha=0.5, linestyle='-')
