@@ -748,15 +748,14 @@ def copy_parsed_observations_for_testing(src_end_em_, dest_end_em_, time_window_
 	finally:
 		curs.close()
 
-def get_png(target_time_of_day_, weather_check_num_hours_in_advance_, num_days_):
+def get_png(target_time_of_day_, weather_check_num_hours_in_advance_, end_date_, num_days_):
 	target_time_of_day = datetime.time(target_time_of_day_, 00)
 
 	plt.figure(1)
 	fig, ax = plt.subplots()
 	fig.set_size_inches(15, 8)
 
-	today = datetime.date(1980, 8, 28)
-	days = get_days(today, num_days_)
+	days = get_days(end_date_, num_days_)
 	target_times = [datetime_to_em(datetime.datetime.combine(target_day, target_time_of_day)) for target_day in days]
 	channel_to_xvals = defaultdict(lambda: [])
 	channel_to_yvals = defaultdict(lambda: [])
@@ -786,7 +785,7 @@ def get_png(target_time_of_day_, weather_check_num_hours_in_advance_, num_days_)
 	plt.xlim(em_to_datetime(target_times[0]-1000*60*60*24), em_to_datetime(target_times[-1]+1000*60*60*24))
 
 	fig.autofmt_xdate()
-	date_format = ('%b %d %Y' if today < datetime.date(1990, 1, 1) else '%b %d') # Include year for testing time frames 
+	date_format = ('%b %d %Y' if end_date_ < datetime.date(1990, 1, 1) else '%b %d') # Include year for testing time frames 
 	ax.xaxis.set_major_formatter(matplotlib.dates.DateFormatter(date_format))
 	ax.xaxis.set_major_locator(matplotlib.ticker.FixedLocator([pylab.date2num(x) for x in observation_xvals]))
 

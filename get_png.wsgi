@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-import sys, os, os.path, urlparse, json, time, re, cgi, urllib
+import sys, os, os.path, urlparse, json, time, re, cgi, urllib, datetime
 from collections import Sequence
 sys.path.append('.')
 import windgraphs
@@ -17,8 +17,12 @@ def application(environ, start_response):
 		target_time_of_day = int(query_vars['target_time_of_day'][0])
 		weather_check_num_hours_in_advance = int(query_vars['weather_check_num_hours_in_advance'][0])
 		num_days = int(query_vars['num_days'][0])
-
-		png_content = windgraphs.get_png(target_time_of_day, weather_check_num_hours_in_advance, num_days)
+		end_date = query_vars['end_date'][0]
+		if end_date == 'today':
+			end_date = datetime.date.today()
+		else:
+			end_date = datetime.date(int(end_date[:4]), int(end_date[4:6]), int(end_date[6:8]))
+		png_content = windgraphs.get_png(target_time_of_day, weather_check_num_hours_in_advance, end_date, num_days)
 
 		response_headers = [('Content-type', 'image/png')]
 		start_response('200 OK', response_headers)
