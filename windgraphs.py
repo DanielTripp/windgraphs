@@ -846,7 +846,7 @@ def get_png(target_time_of_day_, weather_check_num_hours_in_advance_, end_date_,
 		label = ax.annotate(text, xy=first_run[0], xytext=(first_run[0][0] - datetime.timedelta(milliseconds=xlim_margin*0.9), texty),  
 				arrowprops=dict(arrowstyle='-', linestyle='dotted', linewidth=2, color=color), 
 				horizontalalignment='left', verticalalignment='center', weight=('bold' if series == 'actual' else 'normal'), 
-				color=color)
+				color=color, fontsize=10)
 
 	plt.ylabel('Average wind (knots)')
 
