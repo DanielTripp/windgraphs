@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-import sys, urllib2, json, pprint, re, datetime, os, threading, traceback, io
+import sys, urllib2, json, pprint, re, datetime, os, threading, traceback, io, math
 import dateutil.parser, dateutil.tz
 import BeautifulSoup
 import psycopg2
@@ -813,7 +813,8 @@ def get_png(target_time_of_day_, weather_check_num_hours_in_advance_, end_date_,
 	fig.autofmt_xdate()
 	date_format = ('%b %d %Y' if end_date_ < datetime.date(1990, 1, 1) else '%b %d') # Include year for testing time frames 
 	ax.xaxis.set_major_formatter(matplotlib.dates.DateFormatter(date_format))
-	ax.xaxis.set_major_locator(matplotlib.ticker.FixedLocator([pylab.date2num(em_to_datetime(x)) for x in target_times]))
+	ax.xaxis.set_major_locator(matplotlib.ticker.FixedLocator(
+			[pylab.date2num(em_to_datetime(x)) for x in target_times[::get_xaxis_tick_step(num_days_)]]))
 
 	max_yval = 1
 	for observation_run in observation_runs:
@@ -855,6 +856,9 @@ def get_png(target_time_of_day_, weather_check_num_hours_in_advance_, end_date_,
 	r = buf.read()
 
 	return r
+
+def get_xaxis_tick_step(num_days_):
+	return int(math.ceil(get_range_val((20,1.0), (40,2.0), num_days_)))
 
 def get_line_scale(num_days_):
 	if num_days_ < 30:
