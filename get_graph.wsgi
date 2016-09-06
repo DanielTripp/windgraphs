@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-import sys, os, os.path, urlparse, json, time, re, cgi, urllib, datetime
+import sys, os, os.path, urlparse, json, time, re, cgi, urllib, datetime, base64, json
 from collections import Sequence
 sys.path.append('.')
 import windgraphs
@@ -24,10 +24,13 @@ def application(environ, start_response):
 			end_date = datetime.date(int(end_date[:4]), int(end_date[4:6]), int(end_date[6:8]))
 		png_content = windgraphs.get_png(target_time_of_day, weather_check_num_hours_in_advance, end_date, num_days)
 
-		response_headers = [('Content-type', 'image/png')]
+		response_headers = [('Content-type', 'application/json')]
 		start_response('200 OK', response_headers)
 
-		return [png_content]
+		r = {'png': base64.b64encode(png_content)}
+		r = json.dumps(r)
+
+		return [r]
 
 	except:
 		printerr('[client %s]          (pid=%s) Request url: %s' % (environ['REMOTE_ADDR'], os.getpid(), get_request_url(environ)))

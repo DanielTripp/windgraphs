@@ -5,16 +5,7 @@
 	<script src="sprintf.min.js"></script>
 	<script type="text/javascript">
 
-function on_img_loaded_ok() {
-}
-
-function on_img_loaded_error() {
-	$("#img").attr("src", "error.png");
-}
-
 function initialize() {
-	$("#img")[0].addEventListener('load', on_img_loaded_ok);
-	$("#img")[0].addEventListener('error', on_img_loaded_error);
 	update_img_from_controls();
 }
 
@@ -29,13 +20,21 @@ function update_img_from_controls() {
 function update_img(target_time_, weather_check_num_hours_, end_date_, num_days_) {
 	var url = get_img_url(target_time_, weather_check_num_hours_, end_date_, num_days_);
 	$("#img").attr("src", "loading.gif");
-	setTimeout(function() { 
-			$("#img").attr("src", url);
-		}, 1);
+	$.ajax({url:url, async:true, 
+		error: function(jqXHR__, textStatus__, errorThrown__) {
+			$("#img").attr("src", "error.png");
+		}, 
+		success: function(data__, textStatus__, jqXHR__) {
+			$("#img").attr("src", "");
+			var png_content_base64 = data__['png'];
+			var inline_img = "data:image/png;base64,"+png_content_base64;
+			$("#img").attr("src", inline_img);
+		}
+	});
 }
 
 function get_img_url(target_time_, weather_check_num_hours_, end_date_, num_days_) {
-	return sprintf("get_png.wsgi?target_time_of_day=%s&weather_check_num_hours_in_advance=%s&end_date=%s&num_days=%s", 
+	return sprintf("get_graph.wsgi?target_time_of_day=%s&weather_check_num_hours_in_advance=%s&end_date=%s&num_days=%s", 
 			target_time_, weather_check_num_hours_, end_date_, num_days_);
 }
 
