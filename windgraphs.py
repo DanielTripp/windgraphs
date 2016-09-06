@@ -16,7 +16,10 @@ from misc import *
 PARSED_WEATHER_CHANNELS = ['wf_reg', 'wf_sup', 'wg_gfs', 'wg_nam', 'wg_hrw'] 
 WEATHER_CHANNEL_TO_COLOR = {'wf_reg':(0.6,0,0.1), 'wf_sup':(0.4,0,0.2), 
 		'wg_gfs':(0,0,0.5), 'wg_nam':(0.2,0.3,0.6), 'wg_hrw':(0.2,0.4,0.6)}
-assert set(WEATHER_CHANNEL_TO_COLOR.keys()) == set(PARSED_WEATHER_CHANNELS)
+WEATHER_CHANNEL_TO_LONG_MULTILINE_NAME = {'wf_reg':'Windfinder\nregular', 'wf_sup':'Windfinder\nsuperforecast', 
+		'wg_gfs':'WindGURU\nGFS 27 km', 'wg_nam':'WindGURU\nNAM 12 km', 'wg_hrw':'WindGURU\nHRW 4 km'}
+assert set(WEATHER_CHANNEL_TO_COLOR.keys()) == set(PARSED_WEATHER_CHANNELS) \
+		== set(WEATHER_CHANNEL_TO_LONG_MULTILINE_NAME.keys())
 
 PASSWORD = file_to_string(os.path.expanduser('~/.windgraphs/DB_PASSWORD')).strip()
 
@@ -749,6 +752,9 @@ def copy_parsed_observations_for_testing(src_end_em_, dest_end_em_, time_window_
 		curs.close()
 
 def get_png(target_time_of_day_, weather_check_num_hours_in_advance_, end_date_, num_days_):
+	if num_days_ > 90:
+		raise Exception('num days arg is too high (%d)' % num_days_)
+
 	target_time_of_day = datetime.time(target_time_of_day_, 00)
 
 	plt.figure(1)
@@ -785,17 +791,21 @@ def get_png(target_time_of_day_, weather_check_num_hours_in_advance_, end_date_,
 	def yvals(run__):
 		return [e[1] for e in run__]
 
+	observation_color = 'black'
 	for run in observation_runs:
-		plt.plot(xvals(run), yvals(run), color='black', marker='o', markeredgewidth=11, 
+		plt.plot(xvals(run), yvals(run), color=observation_color, marker='o', markeredgewidth=11, 
 				linestyle='solid', linewidth=6)
 
 	for channel in forecast_channel_to_runs.keys():
 		color = WEATHER_CHANNEL_TO_COLOR[channel]
 		for forecast_run in forecast_channel_to_runs[channel]:
-			plt.plot(xvals(forecast_run), yvals(forecast_run), color=color, 
-					marker='o', markeredgewidth=6, markeredgecolor=color, linestyle='solid', linewidth=4)
+			xs = xvals(forecast_run)
+			ys = yvals(forecast_run)
+			plt.plot(xs, ys, color=color, marker='o', markeredgewidth=6, markeredgecolor=color, linestyle='solid', linewidth=4)
 
-	plt.xlim(em_to_datetime(target_times[0]-1000*60*60*24), em_to_datetime(target_times[-1]+1000*60*60*24))
+	# Kludge.  Making room for our weather channel names. 
+	xlim_margin = (0.18*(num_days_-7) + 1.5)*24*60*60*1000
+	plt.xlim(em_to_datetime(target_times[0]-xlim_margin), em_to_datetime(target_times[-1]+1000*60*60*24))
 
 	fig.autofmt_xdate()
 	date_format = ('%b %d %Y' if end_date_ < datetime.date(1990, 1, 1) else '%b %d') # Include year for testing time frames 
@@ -814,13 +824,32 @@ def get_png(target_time_of_day_, weather_check_num_hours_in_advance_, end_date_,
 		plt.axhline(y, color=(0.5,0.5,0.5), alpha=0.5, linestyle='-')
 	plt.yticks(np.arange(0, max_yval+5, 5)) # Do this after the axhline() calls or else the min value might not be respected. 
 
+	series_to_first_run = {}
+	series_to_first_run['actual'] = observation_runs[0]
+	for forecast_channel, runs in forecast_channel_to_runs.iteritems():
+		series_to_first_run[forecast_channel] = runs[0]
+	series_to_color = WEATHER_CHANNEL_TO_COLOR.copy()
+	series_to_color['actual'] = observation_color
+	series_to_name = WEATHER_CHANNEL_TO_LONG_MULTILINE_NAME.copy()
+	series_to_name['actual'] = 'Actual wind'
+	serieses_in_y_order = sorted(series_to_first_run.keys(), key=lambda s: series_to_first_run[s][0][1])
+	for seriesi, series in enumerate(serieses_in_y_order):
+		color = series_to_color[series]
+		texty_fraction = (seriesi+1)/float(len(series_to_first_run)+1)
+		texty = texty_fraction*max_yval
+		first_run = series_to_first_run[series]
+		text = series_to_name[series]
+		label = ax.annotate(text, xy=first_run[0], xytext=(first_run[0][0] - datetime.timedelta(milliseconds=xlim_margin*0.9), texty),  
+				arrowprops=dict(arrowstyle='-', linestyle='dotted', linewidth=2, color=color), 
+				horizontalalignment='left', verticalalignment='center', weight=('bold' if series == 'actual' else 'normal'), 
+				color=color)
+
 	plt.ylabel('Average wind (knots)')
 
 	buf = io.BytesIO()
 	plt.savefig(buf, bbox_inches='tight')
 	buf.seek(0)
 	r = buf.read()
-	printerr('after %d bytes' % len(r)) # tdr 
 
 	return r
 
