@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-import sys, urllib2, json, pprint, re, datetime, os, threading, traceback, io, math
+import sys, urllib2, json, pprint, re, datetime, os, threading, traceback, io, math, base64
 import dateutil.parser, dateutil.tz
 import BeautifulSoup
 import psycopg2
@@ -751,7 +751,7 @@ def copy_parsed_observations_for_testing(src_end_em_, dest_end_em_, time_window_
 	finally:
 		curs.close()
 
-def get_png(target_time_of_day_, weather_check_num_hours_in_advance_, end_date_, num_days_):
+def get_graph_info(target_time_of_day_, weather_check_num_hours_in_advance_, end_date_, num_days_):
 	if num_days_ > 90:
 		raise Exception('num days arg is too high (%d)' % num_days_)
 
@@ -853,9 +853,9 @@ def get_png(target_time_of_day_, weather_check_num_hours_in_advance_, end_date_,
 	buf = io.BytesIO()
 	plt.savefig(buf, bbox_inches='tight')
 	buf.seek(0)
-	r = buf.read()
-
-	return r
+	png_content = buf.read()
+	png_content_base64 = base64.b64encode(png_content)
+	return {'png': png_content_base64}
 
 def get_xaxis_tick_step(num_days_):
 	return int(math.ceil(get_range_val((20,1.0), (40,2.0), num_days_)))
