@@ -791,17 +791,20 @@ def get_png(target_time_of_day_, weather_check_num_hours_in_advance_, end_date_,
 	def yvals(run__):
 		return [e[1] for e in run__]
 
+	line_scale = get_line_scale(num_days_)
+
 	observation_color = 'black'
 	for run in observation_runs:
-		plt.plot(xvals(run), yvals(run), color=observation_color, marker='o', markeredgewidth=11, 
-				linestyle='solid', linewidth=6)
+		plt.plot(xvals(run), yvals(run), color=observation_color, marker='o', markeredgewidth=11*line_scale, 
+				linestyle='solid', linewidth=6*line_scale)
 
 	for channel in forecast_channel_to_runs.keys():
 		color = WEATHER_CHANNEL_TO_COLOR[channel]
 		for forecast_run in forecast_channel_to_runs[channel]:
 			xs = xvals(forecast_run)
 			ys = yvals(forecast_run)
-			plt.plot(xs, ys, color=color, marker='o', markeredgewidth=6, markeredgecolor=color, linestyle='solid', linewidth=4)
+			plt.plot(xs, ys, color=color, marker='o', markeredgewidth=6*line_scale, markeredgecolor=color, 
+					linestyle='solid', linewidth=4*line_scale)
 
 	# Kludge.  Making room for our weather channel names. 
 	xlim_margin = (0.18*(num_days_-7) + 1.5)*24*60*60*1000
@@ -852,6 +855,12 @@ def get_png(target_time_of_day_, weather_check_num_hours_in_advance_, end_date_,
 	r = buf.read()
 
 	return r
+
+def get_line_scale(num_days_):
+	if num_days_ < 30:
+		return get_range_val((7,1.0), (30,0.5), num_days_)
+	else:
+		return 0.5
 
 if __name__ == '__main__':
 
