@@ -19,18 +19,39 @@ function update_img_from_controls() {
 
 function update_img(target_time_, weather_check_num_hours_, end_date_, num_days_) {
 	var url = get_img_url(target_time_, weather_check_num_hours_, end_date_, num_days_);
-	$("#img").attr("src", "loading.gif");
+	$("#img_graph").attr("src", "loading.gif");
 	$.ajax({url:url, async:true, 
 		error: function(jqXHR__, textStatus__, errorThrown__) {
-			$("#img").attr("src", "error.png");
+			$("#img_graph").attr("src", "error.png");
 		}, 
 		success: function(data__, textStatus__, jqXHR__) {
-			$("#img").attr("src", "");
+			$("#img_graph").attr("src", "");
 			var png_content_base64 = data__['png'];
 			var inline_img = "data:image/png;base64,"+png_content_base64;
-			$("#img").attr("src", inline_img);
+			$("#img_graph").attr("src", inline_img);
+			update_p_scores(data__['channel_to_score']);
 		}
 	});
+}
+
+function update_p_scores(channel_to_score_) {
+	var html = '<h3>"Mean Squared Error" score for each forecast source:<br>(Lower score = more accurate)</h3><br>';
+	var channels = Object.keys(channel_to_score_);
+	channels.sort(function(a__, b__) {
+			var a_score = channel_to_score_[a__], b_score = channel_to_score_[b__];
+			if(a_score == b_score) {
+				return 0;
+			} else if(a_score < b_score) {
+				return -1;
+			} else {
+				return 1;
+			}
+		});
+	channels.forEach(function(channel) {
+		var score = channel_to_score_[channel];
+		html += sprintf('%s: %s<br>', channel, score);
+	});
+	$("#p_scores").html(html);
 }
 
 function get_img_url(target_time_, weather_check_num_hours_, end_date_, num_days_) {
@@ -43,6 +64,7 @@ $(document).ready(initialize);
 	</script>
 	</head>
 	<body>
+		<h2>Wind forecasts vs. actual wind<br>Toronto Islands</h2>
 		<br>
 		What time of day do you sail? 
 		<select id="target_time_list" required>
@@ -82,6 +104,7 @@ $(document).ready(initialize);
 		<button onclick="update_img_from_controls()">Submit</button>
 		<br>
 		<br>
-		<img id="img" src="">
+		<img id="img_graph" src="">
+		<p id="p_scores"/>
 	</body>
 </html>

@@ -855,7 +855,30 @@ def get_graph_info(target_time_of_day_, weather_check_num_hours_in_advance_, end
 	buf.seek(0)
 	png_content = buf.read()
 	png_content_base64 = base64.b64encode(png_content)
-	return {'png': png_content_base64}
+
+	channel_to_score = get_channel_to_score(observation_runs, forecast_channel_to_runs)
+
+	return {'png': png_content_base64, 'channel_to_score': channel_to_score}
+
+def get_channel_to_score(observation_runs_, forecast_channel_to_runs_):
+	observations = sum(observation_runs_, [])
+	observation_datetime_to_val = {}
+	for observation in observations:
+		observation_datetime_to_val[observation[0]] = observation[1]
+	channel_to_forecasts = {}
+	for channel, runs in forecast_channel_to_runs_.iteritems():
+		channel_to_forecasts[channel] = sum(runs, [])
+	r = {}
+	for channel, forecasts in channel_to_forecasts.iteritems():
+		channel_score = 0
+		for forecast in forecasts:
+			forecast_datetime, forecast_val = forecast
+			if forecast_datetime in observation_datetime_to_val:
+				observation_val = observation_datetime_to_val[forecast_datetime]
+				channel_score += (observation_val - forecast_val)**2
+		channel_score /= len(forecasts)
+		r[channel] = channel_score
+	return r
 
 def get_xaxis_tick_step(num_days_):
 	return int(math.ceil(get_range_val((20,1.0), (40,2.0), num_days_)))
