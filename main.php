@@ -45,7 +45,7 @@ function update_img(target_time_, weather_check_num_hours_, end_date_, num_days_
 }
 
 function update_p_scores(channel_to_score_) {
-	var html = '<h3>"Mean Squared Error" score for each forecast source:<br>(Lower score = more accurate)</h3><br>';
+	var html = '<h3>Lower score = more accurate</h3>';
 	var channels = Object.keys(channel_to_score_);
 	channels.sort(function(a__, b__) {
 			var a_score = channel_to_score_[a__], b_score = channel_to_score_[b__];
@@ -57,11 +57,13 @@ function update_p_scores(channel_to_score_) {
 				return 1;
 			}
 		});
+	html += '<table><tr><th style="text-align:left">Forecast source</th><th>"Mean Squared Error" score</th></tr>';
 	channels.forEach(function(channel) {
 		var score = channel_to_score_[channel];
 		var channel_long_name = WEATHER_CHANNEL_TO_SINGLE_LINE_NAME[channel];
-		html += sprintf('%s: %s<br>', channel_long_name, score);
+		html += sprintf('<tr><td>%s</td><td style="text-align:center">%s</td></tr>', channel_long_name, score);
 	});
+	html += '</table>';
 	$("#p_scores").html(html);
 }
 
