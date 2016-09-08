@@ -6,6 +6,7 @@
 	<script type="text/javascript">
 
 var WEATHER_CHANNEL_TO_LONG_MULTILINE_NAME = <?php readfile('WEATHER_CHANNEL_TO_LONG_MULTILINE_NAME.json');?>
+var WEATHER_CHANNEL_TO_COLOR = <?php readfile('WEATHER_CHANNEL_TO_COLOR.json');?>
 
 var WEATHER_CHANNEL_TO_SINGLE_LINE_NAME = {};
 for(var channel in WEATHER_CHANNEL_TO_LONG_MULTILINE_NAME) {
@@ -61,7 +62,9 @@ function update_p_scores(channel_to_score_) {
 	channels.forEach(function(channel) {
 		var score = channel_to_score_[channel];
 		var channel_long_name = WEATHER_CHANNEL_TO_SINGLE_LINE_NAME[channel];
-		html += sprintf('<tr><td>%s</td><td style="text-align:center">%s</td></tr>', channel_long_name, score);
+		var color = WEATHER_CHANNEL_TO_COLOR[channel];
+		html += sprintf('<tr><td><font color="%s">%s</td><td style="text-align:center">%s</td></tr>', 
+				color, channel_long_name, score);
 	});
 	html += '</table>';
 	$("#p_scores").html(html);
