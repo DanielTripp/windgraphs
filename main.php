@@ -5,6 +5,15 @@
 	<script src="sprintf.min.js"></script>
 	<script type="text/javascript">
 
+var WEATHER_CHANNEL_TO_LONG_MULTILINE_NAME = <?php readfile('WEATHER_CHANNEL_TO_LONG_MULTILINE_NAME.json');?>
+
+var WEATHER_CHANNEL_TO_SINGLE_LINE_NAME = {};
+for(var channel in WEATHER_CHANNEL_TO_LONG_MULTILINE_NAME) {
+	var multiline_name = WEATHER_CHANNEL_TO_LONG_MULTILINE_NAME[channel];
+	var single_line_name = multiline_name.replace('\n', ' ');
+	WEATHER_CHANNEL_TO_SINGLE_LINE_NAME[channel] = single_line_name;
+}
+
 function initialize() {
 	update_img_from_controls();
 }
@@ -50,7 +59,8 @@ function update_p_scores(channel_to_score_) {
 		});
 	channels.forEach(function(channel) {
 		var score = channel_to_score_[channel];
-		html += sprintf('%s: %s<br>', channel, score);
+		var channel_long_name = WEATHER_CHANNEL_TO_SINGLE_LINE_NAME[channel];
+		html += sprintf('%s: %s<br>', channel_long_name, score);
 	});
 	$("#p_scores").html(html);
 }
