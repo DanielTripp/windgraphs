@@ -818,11 +818,14 @@ def get_graph_info(target_time_of_day_, weather_check_num_hours_in_advance_, end
 	ax.xaxis.set_major_locator(matplotlib.ticker.FixedLocator(
 			[pylab.date2num(em_to_datetime(x)) for x in target_times[::get_xaxis_tick_step(num_days_)]]))
 
+	min_xval = observation_runs[0][0][0]
 	max_yval = 1
 	for observation_run in observation_runs:
+		min_xval = min(min_xval, min(xvals(observation_run)))
 		max_yval = max(max_yval, max(yvals(observation_run)))
 	for forecast_runs in forecast_channel_to_runs.itervalues():
 		for forecast_run in forecast_runs:
+			min_xval = min(min_xval, min(xvals(forecast_run)))
 			max_yval = max(max_yval, max(yvals(forecast_run)))
 	max_yval += 1
 
@@ -845,7 +848,7 @@ def get_graph_info(target_time_of_day_, weather_check_num_hours_in_advance_, end
 		texty = texty_fraction*max_yval
 		first_run = series_to_first_run[series]
 		text = series_to_name[series]
-		label = ax.annotate(text, xy=first_run[0], xytext=(first_run[0][0] - datetime.timedelta(milliseconds=xlim_margin*0.9), texty),  
+		label = ax.annotate(text, xy=first_run[0], xytext=(min_xval - datetime.timedelta(milliseconds=xlim_margin*0.9), texty),  
 				arrowprops=dict(arrowstyle='-', linestyle='dotted', linewidth=2, color=color), 
 				horizontalalignment='left', verticalalignment='center', weight=('bold' if series == 'actual' else 'normal'), 
 				color=color, fontsize=10)
