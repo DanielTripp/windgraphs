@@ -13,11 +13,13 @@ import pylab
 import numpy as np
 from misc import *
 
-PARSED_WEATHER_CHANNELS = ['wf_reg', 'wf_sup', 'wg_gfs', 'wg_nam', 'wg_hrw'] 
-WEATHER_CHANNEL_TO_COLOR = {'wf_reg':(0.6,0,0.1), 'wf_sup':(0.4,0,0.2), 
-		'wg_gfs':(0,0,0.5), 'wg_nam':(0.2,0.3,0.6), 'wg_hrw':(0.2,0.4,0.6)}
-WEATHER_CHANNEL_TO_LONG_MULTILINE_NAME = {'wf_reg':'Windfinder\nregular', 'wf_sup':'Windfinder\nsuperforecast', 
-		'wg_gfs':'WindGURU\nGFS 27 km', 'wg_nam':'WindGURU\nNAM 12 km', 'wg_hrw':'WindGURU\nHRW 4 km'}
+with open('PARSED_WEATHER_CHANNELS.json') as fin:
+	PARSED_WEATHER_CHANNELS = json.load(fin)
+with open('WEATHER_CHANNEL_TO_COLOR.json') as fin:
+	WEATHER_CHANNEL_TO_COLOR = json.load(fin)
+with open('WEATHER_CHANNEL_TO_LONG_MULTILINE_NAME.json') as fin:
+	WEATHER_CHANNEL_TO_LONG_MULTILINE_NAME = json.load(fin)
+
 assert set(WEATHER_CHANNEL_TO_COLOR.keys()) == set(PARSED_WEATHER_CHANNELS) \
 		== set(WEATHER_CHANNEL_TO_LONG_MULTILINE_NAME.keys())
 
