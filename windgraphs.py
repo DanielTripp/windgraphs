@@ -851,7 +851,7 @@ def get_graph_info(target_time_of_day_, weather_check_num_hours_in_advance_, end
 		label = ax.annotate(text, xy=first_run[0], xytext=(min_xval - datetime.timedelta(milliseconds=xlim_margin*0.9), texty),  
 				arrowprops=dict(arrowstyle='-', linestyle='dotted', linewidth=2, color=color), 
 				horizontalalignment='left', verticalalignment='center', weight=('bold' if series == 'actual' else 'normal'), 
-				color=color, fontsize=10)
+				color=color, fontsize=10, family='serif')
 
 	plt.ylabel('Average wind (knots)')
 
