@@ -462,10 +462,10 @@ def get_this_month_and_last_dates():
 		last_month_date -= datetime.timedelta(1)
 	return (today, last_month_date)
 
-def get_observations_and_insert_into_db(dry_run_):
+def get_observations_and_insert_into_db(dry_run_, printlevel_):
 	this_month_date, last_month_date = get_this_month_and_last_dates()
-	get_observations_and_insert_into_db_single_month(this_month_date, dry_run_, 0)
-	get_observations_and_insert_into_db_single_month(last_month_date, dry_run_, 0)
+	get_observations_and_insert_into_db_single_month(this_month_date, dry_run_, printlevel_)
+	get_observations_and_insert_into_db_single_month(last_month_date, dry_run_, printlevel_)
 
 def get_observations_and_insert_into_db_single_month(date_, dry_run_, printlevel_):
 	assert printlevel_ in (0, 1, 2)
