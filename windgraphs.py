@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 
-import sys, urllib2, json, pprint, re, datetime, os, threading, traceback, io, math, base64
-import dateutil.parser, dateutil.tz
+import sys, urllib2, json, pprint, re, datetime, os, threading, traceback, io, math, base64, StringIO, csv
 import BeautifulSoup
 import psycopg2
 import matplotlib
@@ -26,11 +25,69 @@ assert set(WEATHER_CHANNEL_TO_COLOR.keys()) == set(PARSED_WEATHER_CHANNELS) \
 PASSWORD = file_to_string(os.path.expanduser('~/.windgraphs/DB_PASSWORD')).strip()
 
 DEV = os.path.exists('DEV')
-DEV_READ_FROM_FILES = DEV and 1
+DEV_READ_FROM_FILES = DEV and 0
 DEV_WRITE_TO_FILES = DEV and 0
 
 g_db_conn = None
 g_lock = threading.RLock()
+
+
+'''
+Some database table definitions: 
+
+postgres=> \d  wind_observations_raw
+          Table "public.wind_observations_raw"
+       Column       |          Type          | Modifiers
+--------------------+------------------------+-----------
+ channel            | character varying(100) |
+ time_retrieved     | bigint                 |
+ time_retrieved_str | character varying(100) |
+ content            | character varying      |
+Indexes:
+    "wind_observations_raw_idx1" btree (time_retrieved)
+
+postgres=> \d  wind_observations_parsed
+         Table "public.wind_observations_parsed"
+       Column       |          Type          | Modifiers
+--------------------+------------------------+-----------
+ channel            | character varying(100) |
+ time_retrieved     | bigint                 |
+ time_retrieved_str | character varying(100) |
+ base_wind          | integer                |
+ gust_wind          | integer                |
+Indexes:
+    "wind_observations_parsed_idx1" btree (time_retrieved)
+
+postgres=> \d  wind_forecasts_raw
+            Table "public.wind_forecasts_raw"
+       Column       |          Type          | Modifiers
+--------------------+------------------------+-----------
+ weather_channel    | character varying(100) |
+ time_retrieved     | bigint                 |
+ time_retrieved_str | character varying(100) |
+ content            | character varying      |
+Indexes:
+    "wind_forecasts_raw_idx1" btree (time_retrieved)
+    "wind_forecasts_raw_weather_channel" btree (weather_channel)
+
+postgres=> \d  wind_forecasts_parsed
+          Table "public.wind_forecasts_parsed"
+       Column       |          Type          | Modifiers
+--------------------+------------------------+-----------
+ weather_channel    | character varying(100) |
+ time_retrieved     | bigint                 |
+ time_retrieved_str | character varying(100) |
+ target_time        | bigint                 |
+ target_time_str    | character varying(100) |
+ base_wind          | integer                |
+ gust_wind          | integer                |
+Indexes:
+    "wind_forecasts_parsed_target_time" btree (target_time)
+    "wind_forecasts_parsed_time_retrieved" btree (time_retrieved)
+    "wind_forecasts_parsed_weather_channel" btree (weather_channel)
+
+postgres=>
+'''
 
 def lock(f):
 	'''
@@ -250,12 +307,15 @@ def zip_filter(lists_, func_):
 	for l in lists_:
 		l[:] = [e for i, e in enumerate(l) if keep[i]]
 
-def get_observations_web_response():
+def get_observations_web_response(year_, month_):
 	if DEV_READ_FROM_FILES:
 		with open('d-current-conditions') as fin:
 			r = fin.read()
 	else:
-		url = 'http://atm.navcanada.ca/atm/iwv/CYTZ'
+		# Thanks to ftp://ftp.tor.ec.gc.ca/Pub/Get_More_Data_Plus_de_donnees/Readme.txt 
+		# ("Day: the value of the "day" variable is not used and can be an arbitrary value")
+		url = "http://climate.weather.gc.ca/climate_data/bulk_data_e.html?format=csv&stationID=48549&Year=%d&Month=%d&Day=14&timeframe=1&submit=Download+Data"
+		url = url % (year_, month_)
 		r = urllib2.urlopen(url).read()
 		if DEV_WRITE_TO_FILES:
 			with open('d-current-conditions', 'w') as fout:
@@ -264,49 +324,37 @@ def get_observations_web_response():
 
 class Observation(object):
 
-	def __init__(self, time_retrieved_, base_wind_, gust_wind_):
+	def __init__(self, channel_, time_retrieved_, base_wind_, gust_wind_):
+		self.channel = channel_
 		self.time_retrieved = time_retrieved_
 		self.base_wind = base_wind_
 		self.gust_wind = gust_wind_
 
 	def __str__(self):
-		return 'Observation(%s, wind=%2d, gust=%2d)' % (em_to_str(self.time_retrieved), self.base_wind, self.gust_wind)
+		return 'Observation(%s, %s, wind=%2d, gust=%2d)' % (self.channel, em_to_str(self.time_retrieved), self.base_wind, self.gust_wind)
 
 	def __repr__(self):
 		return self.__str__()
 
-# Unlike forecasts, we get a "time retrieved" from the web content on parse 
-# here, so we insert that into the "parsed observations" table, so the "time 
-# retrieved" values will not match between the "raw observations" and "parsed 
-# observations" table.  It's unclear if there are any strong reasons for this.  
 def parse_observation_web_response(web_response_):
-	soup = BeautifulSoup.BeautifulSoup(web_response_)
-	wind = None
-	gust = None
-	for x in soup.findAll('td', {'class': 'stat-cell'}):
-		for content in x.contents:
-			if 'Gusting' in content:
-				gust = x.span.string
-			elif 'Wind Speed' in content:
-				# Witnessed this being ' ' once, 2016-08-18 23:40.  Other parts of the 
-				# page looked like they were in error too.  
-				wind = x.span.string
-			elif 'Updated' in content:
-				time_retrieved = x.span.string
+	r = []
+	in_data_yet = False
+	for line in web_response_.splitlines():
+		if not in_data_yet:
+			if line.startswith('"Date/Time","Year","Month","Day"'):
+				in_data_yet = True
+		else:
+			fields = csv.reader(StringIO.StringIO(line)).next()
+			if len(fields) > 14 and fields[14]:
+				wind = kmph_to_knots(int(fields[14]))
+				datetime = fields[0]
+				time_retrieved = int(time.mktime(time.strptime(datetime, '%Y-%m-%d %H:%M'))*1000)
+				gust = -1
+				r.append(Observation('gc.ca', time_retrieved, wind, gust))
+	return r
 
-	if wind == 'CALM':
-		wind = 0
-	else:
-		wind = int(wind)
-
-	if gust == '--':
-		gust = wind
-	else:
-		gust = gust.lstrip('G')
-	gust = int(gust)
-
-	time_retrieved = datetime_to_em(dateutil.parser.parse(time_retrieved).astimezone(dateutil.tz.tzlocal()))
-	return Observation(time_retrieved, wind, gust)
+def kmph_to_knots(kmph_):
+	return kmph_*0.539957
 
 @lock
 @trans
@@ -335,23 +383,35 @@ def insert_parsed_forecast_into_db(curs_, forecast_):
 @lock
 @trans
 def insert_raw_observation_into_db(web_response_str_):
+	r = False
 	curs = db_conn().cursor()
-	time_em = now_em()
-	time_str = em_to_str(time_em)
-	cols = [time_em, time_str, web_response_str_]
-	curs.execute('INSERT INTO wind_observations_raw VALUES (%s,%s,%s)', cols)
-	curs.close()
+	try:
+		time_em = now_em()
+		time_str = em_to_str(time_em)
+		cols = ['gc.ca', time_em, time_str, web_response_str_]
+		curs.execute('INSERT INTO wind_observations_raw VALUES (%s,%s,%s,%s)', cols)
+		r = True
+	except psycopg2.IntegrityError, e:
+		pass
+	finally:
+		curs.close()
+	return r
 
 @lock
 @trans
 def insert_parsed_observation_into_db(obs_):
+	r = False
 	curs = db_conn().cursor()
 	try:
 		time_retrieved_str = em_to_str(obs_.time_retrieved)
-		cols = [obs_.time_retrieved, time_retrieved_str, obs_.base_wind, obs_.gust_wind]
-		curs.execute('INSERT INTO wind_observations_parsed VALUES (%s,%s,%s,%s)', cols)
+		cols = [obs_.channel, obs_.time_retrieved, time_retrieved_str, obs_.base_wind, obs_.gust_wind]
+		curs.execute('INSERT INTO wind_observations_parsed VALUES (%s,%s,%s,%s,%s)', cols)
+		r = True
+	except psycopg2.IntegrityError, e:
+		pass
 	finally:
 		curs.close()
+	return r
 
 def get_raw_observation_from_db(t_):
 	sqlstr = 'select content from wind_observations_raw where time_retrieved = %d' % (t_)
@@ -395,11 +455,41 @@ def print_reparsed_forecasts_from_db(weather_channel_, datestr_):
 		for forecast in forecasts:
 			print forecast
 
-def get_observations_and_insert_into_db():
-	web_response = get_observations_web_response()
-	insert_raw_observation_into_db(web_response)
-	parsed_observation = parse_observation_web_response(web_response)
-	insert_parsed_observation_into_db(parsed_observation)
+def get_this_month_and_last_dates():
+	today = datetime.date.today()
+	last_month_date = datetime.date(today.year, today.month, today.day)
+	while last_month_date.month == today.month:
+		last_month_date -= datetime.timedelta(1)
+	return (today, last_month_date)
+
+def get_observations_and_insert_into_db(dry_run_):
+	this_month_date, last_month_date = get_this_month_and_last_dates()
+	get_observations_and_insert_into_db_single_month(this_month_date, dry_run_, 0)
+	get_observations_and_insert_into_db_single_month(last_month_date, dry_run_, 0)
+
+def get_observations_and_insert_into_db_single_month(date_, dry_run_, printlevel_):
+	assert printlevel_ in (0, 1, 2)
+	web_response = get_observations_web_response(date_.year, date_.month)
+	monthstr = '(%d-%02d)' % (date_.year, date_.month)
+	if printlevel_ == 2:
+		print '%s raw observations:' % monthstr
+		print web_response
+	if not dry_run_:
+		insert_success = insert_raw_observation_into_db(web_response)
+		if printlevel_ in (1, 2):
+			print '%s insert (raw) was a success: %s' % (monthstr, insert_success)
+	parsed_observations = parse_observation_web_response(web_response)
+	if printlevel_ == 2:
+		print '%s parsed observations:' % monthstr
+		for observation in parsed_observations:
+			print observation
+	if not dry_run_:
+		num_inserts = 0
+		for observation in parsed_observations:
+			if insert_parsed_observation_into_db(observation):
+				num_inserts += 1
+		if printlevel_ in (1, 2):
+			print '%s total parsed observations: %d.  Num successfully inserted: %d' % (monthstr, len(parsed_observations), num_inserts)
 
 def get_all_forecasts_and_insert_into_db():
 	try:
@@ -452,10 +542,12 @@ def get_forecast_nearest_time_retrieveds(weather_channel_, time_retrieved_em_, t
 	return r
 
 def get_near_time_retrieveds(table_, time_em_, sooner_aot_later_, maxrows_, time_span_):
+	assert table_.startswith('wind_observations_')
 	sign = ('>=' if sooner_aot_later_ else '<=')
 	order = ('asc' if sooner_aot_later_ else 'desc')
 	sqlstr = '''select time_retrieved from %s  
-			where time_retrieved %s %d order by time_retrieved %s limit %d''' % (table_, sign, time_em_, order, maxrows_)
+			where channel = 'gc.ca' and time_retrieved %s %d order by time_retrieved %s limit %d''' \
+			% (table_, sign, time_em_, order, maxrows_)
 	curs = db_conn().cursor()
 	try:
 		curs.execute(sqlstr)
@@ -556,27 +648,20 @@ def get_raw_forecast_from_db(weather_channel_, t_):
 	curs.close()
 	return r
 
-
-def get_averaged_observation_from_db(t_):
+def get_observation_from_db(t_):
 	assert isinstance(t_, long)
-	obs_times = get_nearest_time_retrieveds('wind_observations_parsed', t_, 3, 1000*60*25)
-	base_winds = []
-	gust_winds = []
-	for obs_time in obs_times:
-		sqlstr = 'select base_wind, gust_wind from wind_observations_parsed where time_retrieved = %d' % (obs_time)
-		curs = db_conn().cursor()
-		try:
-			curs.execute(sqlstr)
-			row = curs.next()
-			base_winds.append(row[0])
-			gust_winds.append(row[1])
-		finally:
-			curs.close()
-	assert len(base_winds) == len(gust_winds)
-	if len(base_winds) == 0:
-		return None
-	else:
-		return Observation(t_, int(average(base_winds)), max(gust_winds))
+	sqlstr = '''select base_wind, gust_wind from wind_observations_parsed where channel = 'gc.ca' 
+			and time_retrieved = %d''' % (t_)
+	curs = db_conn().cursor()
+	try:
+		curs.execute(sqlstr)
+		for row in curs:
+			base_wind, gust_wind = row
+			return Observation('gc.ca', t_, base_wind, gust_wind)
+		else:
+			return None
+	finally:
+		curs.close()
 
 def get_days(start_date_, num_days_):
 	r = []
@@ -584,17 +669,6 @@ def get_days(start_date_, num_days_):
 	for i in xrange(num_days_-1):
 		r.append(r[-1] - datetime.timedelta(1))
 	r = r[::-1]
-	return r
-
-def get_averaged_observations_from_db(target_time_, start_date_, num_days_):
-	assert isinstance(target_time_, datetime.time)
-	assert isinstance(start_date_, datetime.date)
-	r = {}
-	for dayte in dates(start_date_, num_days_):
-		daytetyme = datetime.datetime.combine(dayte, target_time_)
-		observation = get_averaged_observation_from_db(datetime_to_em(daytetyme))
-		if observation is not None:
-			r[daytetyme] = observation
 	return r
 
 def backfill_reparse_raw_forecast_in_db(weather_channel_, datestr_):
@@ -770,7 +844,7 @@ def get_graph_info(target_time_of_day_, weather_check_num_hours_in_advance_, end
 	for target_t in target_times:
 		check_weather_t = target_t - 1000*60*60*weather_check_num_hours_in_advance_
 
-		observation = get_averaged_observation_from_db(target_t)
+		observation = get_observation_from_db(target_t)
 		if observation is None:
 			observation_runs.append([])
 		else:
