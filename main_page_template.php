@@ -34,7 +34,7 @@ function update_img_from_controls() {
 			echo 'var end_date = null;';
 		}
 	?>
-	var num_days = $("#num_days_field").val();
+	var num_days = $("#graph_domain_num_days_list").val();
 	update_img(target_time, weather_check_num_hours, end_date, num_days);
 }
 
@@ -137,7 +137,17 @@ $(document).ready(initialize);
 		</select>
 		<br>
 		<br>
-		Number of days to graph: <input id="num_days_field" type="text" value="15"></input>
+		Show data for:
+		<select id="graph_domain_num_days_list" required>
+			<?php 
+				foreach(explode("\n", file_get_contents('graph_domain_num_days.txt')) as $line) {
+					if($line != "") {
+						$graph_domain_num_days = intval($line);
+						echo "<option value=\"$graph_domain_num_days\">the last $graph_domain_num_days days</option>\n"; 
+					}
+				}
+			?>
+		</select>
 		<br>
 		<br>
 		<?php
@@ -147,7 +157,7 @@ $(document).ready(initialize);
 				<br>';
 			}
 		?>
-		<button onclick="update_img_from_controls()">Submit</button>
+		<button onclick="update_img_from_controls()">Update</button>
 		<br>
 		<br>
 		<img id="img_graph" src="">
