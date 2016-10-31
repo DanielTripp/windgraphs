@@ -1,9 +1,15 @@
 #!/usr/bin/env python
 
-import sys, urllib2, json, pprint, re, datetime, os, threading, traceback, io, math, base64, StringIO, csv
+import sys, urllib2, json, pprint, re, datetime, os, threading, traceback, io, math, base64, StringIO, csv, tempfile
 import BeautifulSoup
 import psycopg2
+
+# If we don't do this then when this is run as a service, by root "sudo"ing 
+# back down to a regular user, then matplotlib might try to write to root's 
+# home dir. 
+os.putenv('MPLCONFIGDIR', tempfile.mkdtemp(prefix='windgraphs-MPLCONFIGDIR-temp-'))
 import matplotlib
+
 matplotlib.use('Agg')
 import matplotlib.dates
 import matplotlib.pyplot as plt
