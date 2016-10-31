@@ -27,26 +27,32 @@ def get_out_filename(target_time_, hours_in_advance_, graph_domain_num_days_):
 	r = os.path.join(DEST_DIR, r)
 	return r
 
-def make_all_files():
+def is_file_out_of_date(filename_):
+	# tdr unc return not os.path.exists(filename_) or (time.time() - os.path.getmtime(filename_) > 60*60*12)
+	return not os.path.exists(filename_) or (time.time() - os.path.getmtime(filename_) > 30) # tdr 
+
+def make_all_files_if_out_of_date():
 	graph_end_date = datetime.date.today()
 	for target_time in get_target_times():
 		for hours_in_advance in get_hours_in_advance():
 			for graph_domain_num_days in get_graph_domain_num_days():
 				out_filename = get_out_filename(target_time, hours_in_advance, graph_domain_num_days)
-				graph_info = windgraphs.get_graph_info(
-						target_time, hours_in_advance, graph_end_date, graph_domain_num_days)
-				with open(out_filename, 'w') as fout:
-					json.dump(graph_info, fout)
+				if is_file_out_of_date(out_filename):
+					graph_info = windgraphs.get_graph_info(
+							target_time, hours_in_advance, graph_end_date, graph_domain_num_days)
+					with open(out_filename, 'w') as fout:
+						json.dump(graph_info, fout)
 
 if __name__ == '__main__':
 
 	os.chdir(os.path.dirname(sys.argv[0]))
 	if not os.path.isdir(DEST_DIR):
 		os.makedirs(DEST_DIR)
-	os.nice(10)
+	os.nice(20)
 	while True:
-		make_all_files()
-		time.sleep(60)
+		make_all_files_if_out_of_date()
+		# tdr unc time.sleep(60)
+		time.sleep(1) # tdr 
 
 
 
