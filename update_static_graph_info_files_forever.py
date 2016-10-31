@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-import sys, datetime, os, json
+import sys, datetime, os, json, time
 import windgraphs
 
 DEST_DIR = 'static_graph_info'
@@ -27,13 +27,6 @@ def get_out_filename(target_time_, hours_in_advance_, graph_domain_num_days_):
 	r = os.path.join(DEST_DIR, r)
 	return r
 
-def main():
-	os.chdir(os.path.dirname(sys.argv[0]))
-	if not os.path.isdir(DEST_DIR):
-		os.makedirs(DEST_DIR)
-	os.nice(10)
-	make_all_files()
-
 def make_all_files():
 	graph_end_date = datetime.date.today()
 	for target_time in get_target_times():
@@ -47,7 +40,13 @@ def make_all_files():
 
 if __name__ == '__main__':
 
-	main()
+	os.chdir(os.path.dirname(sys.argv[0]))
+	if not os.path.isdir(DEST_DIR):
+		os.makedirs(DEST_DIR)
+	os.nice(10)
+	while True:
+		make_all_files()
+		time.sleep(60)
 
 
 
