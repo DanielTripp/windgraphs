@@ -907,7 +907,8 @@ def get_graph_info(target_time_of_day_, weather_check_num_hours_in_advance_, end
 	series_to_first_run = {}
 	series_to_first_run['actual'] = observation_runs[0]
 	for forecast_channel, runs in forecast_channel_to_runs.iteritems():
-		series_to_first_run[forecast_channel] = runs[0]
+		if runs:
+			series_to_first_run[forecast_channel] = runs[0]
 	series_to_color = WEATHER_CHANNEL_TO_COLOR.copy()
 	series_to_color['actual'] = observation_color
 	series_to_name = WEATHER_CHANNEL_TO_LONG_MULTILINE_NAME.copy()
@@ -952,8 +953,11 @@ def get_channel_to_score(observation_runs_, forecast_channel_to_runs_):
 			if forecast_datetime in observation_datetime_to_val:
 				observation_val = observation_datetime_to_val[forecast_datetime]
 				channel_score += (observation_val - forecast_val)**2
-		channel_score /= len(forecasts)
-		r[channel] = channel_score
+		if forecasts:
+			channel_score /= len(forecasts)
+			r[channel] = channel_score
+		else:
+			r[channel] = None
 	return r
 
 def get_xaxis_tick_step(num_days_):
