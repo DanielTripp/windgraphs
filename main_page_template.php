@@ -1,3 +1,8 @@
+<?php 
+	if(!isset($is_main_page_dynamic)) {
+		throw new Exception();
+	}
+?>
 <!DOCTYPE html>
 <html>
 	<head>
@@ -71,8 +76,15 @@ function update_p_scores(channel_to_score_) {
 }
 
 function get_img_url(target_time_, weather_check_num_hours_, end_date_, num_days_) {
-	return sprintf("get_graph_info.wsgi?target_time_of_day=%s&weather_check_num_hours_in_advance=%s&end_date=%s&num_days=%s", 
-			target_time_, weather_check_num_hours_, end_date_, num_days_);
+	<?php 
+		if($is_main_page_dynamic) {
+			echo 'return sprintf("get_graph_info.wsgi?target_time_of_day=%s&weather_check_num_hours_in_advance=%s&end_date=%s&num_days=%s", 
+					target_time_, weather_check_num_hours_, end_date_, num_days_);';
+		} else {
+			echo 'return sprintf("static_graph_info/graph_info___target_time_%02d___hours_in_advance_%d___graph_domain_num_days_%d.json", 
+					target_time_, weather_check_num_hours_, num_days_);';
+		}
+	?>
 }
 
 $(document).ready(initialize);

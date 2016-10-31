@@ -828,9 +828,6 @@ def copy_parsed_observations_for_testing(src_end_em_, dest_end_em_, time_window_
 		curs.close()
 
 def get_graph_info(target_time_of_day_, weather_check_num_hours_in_advance_, end_date_, num_days_):
-	if num_days_ > 90:
-		raise Exception('num days arg is too high (%d)' % num_days_)
-
 	target_time_of_day = datetime.time(target_time_of_day_, 00)
 
 	plt.figure(1)
