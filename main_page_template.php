@@ -27,7 +27,13 @@ function initialize() {
 function update_img_from_controls() {
 	var target_time = $("#target_time_list").val();
 	var weather_check_num_hours = $("#weather_check_num_hours_list").val();
-	var end_date = $("#end_date_field").val();
+	<?php
+		if($is_main_page_dynamic) {
+			echo 'var end_date = $("#end_date_field").val();';
+		} else {
+			echo 'var end_date = null;';
+		}
+	?>
 	var num_days = $("#num_days_field").val();
 	update_img(target_time, weather_check_num_hours, end_date, num_days);
 }
@@ -131,12 +137,16 @@ $(document).ready(initialize);
 		</select>
 		<br>
 		<br>
-		Graph end date: <input id="end_date_field" type="text" value="today"></input>
+		Number of days to graph: <input id="num_days_field" type="text" value="15"></input>
 		<br>
 		<br>
-		Number of days to graph: <input id="num_days_field" type="text" value="7"></input>
-		<br>
-		<br>
+		<?php
+			if($is_main_page_dynamic) {
+				echo 'Graph end date: <input id="end_date_field" type="text" value="today"></input>
+				<br>
+				<br>';
+			}
+		?>
 		<button onclick="update_img_from_controls()">Submit</button>
 		<br>
 		<br>
