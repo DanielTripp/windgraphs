@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-import sys, datetime, os, json, time
+import sys, datetime, os, json, time, stat
 import windgraphs
 
 DEST_DIR = 'static_graph_info'
@@ -39,8 +39,12 @@ def make_all_files_if_out_of_date():
 				if is_file_out_of_date(out_filename):
 					graph_info = windgraphs.get_graph_info(
 							target_time, hours_in_advance, graph_end_date, graph_domain_num_days)
-					with open(out_filename, 'w') as fout:
-						json.dump(graph_info, fout)
+					write_file(out_filename, graph_info)
+
+def write_file(filename_, contents_obj_):
+	with open(filename_, 'w') as fout:
+		json.dump(contents_obj_, fout)
+	os.chmod(filename_, stat.S_IRUSR | stat.S_IWUSR | stat.S_IRGRP | stat.S_IROTH)
 
 if __name__ == '__main__':
 
