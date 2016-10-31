@@ -12,6 +12,6 @@ fi
 /etc/init.d/windgraphs stop
 rm static_graph_info/*
 /etc/init.d/windgraphs start
-sleep 10
+sleep 5
 /etc/init.d/windgraphs status
 
