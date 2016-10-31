@@ -28,8 +28,7 @@ def get_out_filename(target_time_, hours_in_advance_, graph_domain_num_days_):
 	return r
 
 def is_file_out_of_date(filename_):
-	# tdr unc return not os.path.exists(filename_) or (time.time() - os.path.getmtime(filename_) > 60*60*12)
-	return not os.path.exists(filename_) or (time.time() - os.path.getmtime(filename_) > 30) # tdr 
+	return not os.path.exists(filename_) or (time.time() - os.path.getmtime(filename_) > 60*60*6)
 
 def make_all_files_if_out_of_date():
 	graph_end_date = datetime.date.today()
@@ -51,8 +50,7 @@ if __name__ == '__main__':
 	os.nice(20)
 	while True:
 		make_all_files_if_out_of_date()
-		# tdr unc time.sleep(60)
-		time.sleep(1) # tdr 
+		time.sleep(60*30)
 
 
 
