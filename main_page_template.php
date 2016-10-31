@@ -21,7 +21,18 @@ for(var channel in WEATHER_CHANNEL_TO_LONG_MULTILINE_NAME) {
 }
 
 function initialize() {
+	init_handlers();
 	update_img_from_controls();
+}
+
+function init_handlers() {
+	<?php
+		if(!$is_main_page_dynamic) {
+			echo '["#target_time_list", "#weather_check_num_hours_list", "#graph_domain_num_days_list"].forEach(function(ctrl_name) {
+				$(ctrl_name).change(update_img_from_controls);
+			});';
+		}
+	?>
 }
 
 function update_img_from_controls() {
@@ -157,9 +168,13 @@ $(document).ready(initialize);
 				<br>';
 			}
 		?>
-		<button onclick="update_img_from_controls()">Update</button>
-		<br>
-		<br>
+		<?php
+			if($is_main_page_dynamic) {
+				echo '<button onclick="update_img_from_controls()">Update</button>
+				<br>
+				<br>';
+			}
+		?>
 		<img id="img_graph" src="">
 		<p id="p_scores"/>
 	</body>
