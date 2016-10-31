@@ -1,7 +1,8 @@
 #!/usr/bin/env python
 
-import sys, datetime, os, json, time, stat
+import sys, datetime, os, json, time, stat, traceback
 import windgraphs
+from misc import *
 
 DEST_DIR = 'static_graph_info'
 
@@ -35,11 +36,17 @@ def make_all_files_if_out_of_date():
 	for target_time in get_target_times():
 		for hours_in_advance in get_hours_in_advance():
 			for graph_domain_num_days in get_graph_domain_num_days():
-				out_filename = get_out_filename(target_time, hours_in_advance, graph_domain_num_days)
-				if is_file_out_of_date(out_filename):
-					graph_info = windgraphs.get_graph_info(
-							target_time, hours_in_advance, graph_end_date, graph_domain_num_days)
-					write_file(out_filename, graph_info)
+				try:
+					out_filename = get_out_filename(target_time, hours_in_advance, graph_domain_num_days)
+					if is_file_out_of_date(out_filename):
+						graph_info = windgraphs.get_graph_info(
+								target_time, hours_in_advance, graph_end_date, graph_domain_num_days)
+						write_file(out_filename, graph_info)
+				except Exception:
+					print >> sys.stderr, now_str(), \
+							'Exception while making file.  Args: target_time=%d, hours_in_advance=%d, graph_domain_num_days=%d' \
+							% (target_time, hours_in_advance, graph_domain_num_days)
+					traceback.print_exc()
 
 def write_file(filename_, contents_obj_):
 	with open(filename_, 'w') as fout:
