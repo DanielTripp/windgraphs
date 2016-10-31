@@ -10,7 +10,7 @@ if [ "$(whoami)" != 'root' ] ; then
 fi
 
 /etc/init.d/windgraphs stop
-rm static_graph_info/*
+touch -t 198001010000 static_graph_info/*
 /etc/init.d/windgraphs start
 sleep 5
 /etc/init.d/windgraphs status
