@@ -84,30 +84,38 @@ $(document).ready(initialize);
 		<br>
 		What time of day do you sail? 
 		<select id="target_time_list" required>
-			<option value="08">8:00 AM</option>
-			<option value="11">11:00 AM</option>
-			<option value="14">2:00 PM</option>
-			<option value="17" selected="selected">5:00 PM</option>
-			<option value="20">8:00 PM</option>
+			<?php 
+				foreach(explode("\n", file_get_contents('target_times.txt')) as $line) {
+					if($line != "") {
+						$hour_24_str = $line;
+						$hour = intval($line); 
+						if($hour > 12) {
+							$display_str = sprintf("%02d:00 PM", $hour-12);
+						} else {
+							$display_str = sprintf("%02d:00 AM", $hour);
+						}
+						echo sprintf("<option value=\"$hour_24_str\">$display_str</option>\n"); 
+					}
+				}
+			?>
 		</select>
 		<br>
 		<br>
 		When do you check the forecast? 
 		<select id="weather_check_num_hours_list" required>
-			<option value="2">2 hours in advance</option>
-			<option value="4" selected="selected">4 hours in advance</option>
-			<option value="8">8 hours in advance</option>
-			<option value="12">12 hours in advance</option>
-			<option value="16">16 hours in advance</option>
-			<option value="20">20 hours in advance</option>
-			<option value="24">24 hours in advance</option>
-			<option value="36">36 hours in advance</option>
-			<option value="48">48 hours in advance</option>
-			<option value="72">3 days in advance</option>
-			<option value="96">4 days in advance</option>
-			<option value="120">5 days in advance</option>
-			<option value="144">6 days in advance</option>
-			<option value="168">7 days in advance</option>
+			<?php 
+				foreach(explode("\n", file_get_contents('hours_in_advance.txt')) as $line) {
+					if($line != "") {
+						$num_hours = intval($line);
+						if($num_hours < 72) {
+							$display_str = sprintf("%d hours in advance", $num_hours);
+						} else {
+							$display_str = sprintf("%d days in advance", $num_hours/24);
+						}
+						echo sprintf("<option value=\"$num_hours\">$display_str</option>\n"); 
+					}
+				}
+			?>
 		</select>
 		<br>
 		<br>
