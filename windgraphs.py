@@ -842,7 +842,7 @@ def get_graph_info(target_time_of_day_, weather_check_num_hours_in_advance_, end
 
 	plt.figure(1)
 	fig, ax = plt.subplots()
-	fig.set_size_inches(15, 8)
+	fig.set_size_inches(14, 8)
 
 	days = get_days(end_date_, num_days_)
 	target_times = [datetime_to_em(datetime.datetime.combine(target_day, target_time_of_day)) for target_day in days]

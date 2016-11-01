@@ -51,6 +51,7 @@ function update_img_from_controls() {
 
 function update_img(target_time_, weather_check_num_hours_, end_date_, num_days_) {
 	var url = get_img_url(target_time_, weather_check_num_hours_, end_date_, num_days_);
+	var y_scroll_pos = $(window).scrollTop();
 	$("#img_graph").attr("src", "loading.gif");
 	$("#p_scores").html('');
 	$.ajax({url:url, async:true, 
@@ -63,12 +64,13 @@ function update_img(target_time_, weather_check_num_hours_, end_date_, num_days_
 			var inline_img = "data:image/png;base64,"+png_content_base64;
 			$("#img_graph").attr("src", inline_img);
 			update_p_scores(data__['channel_to_score']);
+			$(window).scrollTop(y_scroll_pos);
 		}
 	});
 }
 
 function update_p_scores(channel_to_score_) {
-	var html = '<h3>Lower score = more accurate</h3>';
+	var html = '';
 	var channels = Object.keys(channel_to_score_);
 	channels.sort(function(a__, b__) {
 			var a_score = channel_to_score_[a__], b_score = channel_to_score_[b__];
@@ -80,7 +82,8 @@ function update_p_scores(channel_to_score_) {
 				return 1;
 			}
 		});
-	html += '<table><tr><th style="text-align:left">Forecast source</th><th>"Mean Squared Error" score</th></tr>';
+	html += '<table><tr><th valign="top" style="text-align:left">Forecast source</th>'
+			+'<th>"Mean Squared Error" score<br>(Lower = more accurate)</th></tr>';
 	channels.forEach(function(channel) {
 		var score = channel_to_score_[channel];
 		var channel_long_name = WEATHER_CHANNEL_TO_SINGLE_LINE_NAME[channel];
@@ -109,73 +112,93 @@ $(document).ready(initialize);
 	</script>
 	</head>
 	<body>
-		<h2>Wind forecasts vs. actual wind<br>Toronto Islands</h2>
+		<h2>Wind forecasts vs. actual wind - Toronto Islands</h2>
 		<br>
-		What time of day do you sail? 
-		<select id="target_time_list" required>
-			<?php 
-				foreach(explode("\n", file_get_contents('target_times.txt')) as $line) {
-					if($line != "") {
-						$hour_24_str = $line;
-						$hour = intval($line); 
-						if($hour > 12) {
-							$display_str = sprintf("%02d:00 PM", $hour-12);
-						} else {
-							$display_str = sprintf("%02d:00 AM", $hour);
+		<div>
+			<div style="float: left;">
+			What time of day do you sail? <br>
+			<select id="target_time_list" required>
+				<?php 
+					foreach(explode("\n", file_get_contents('target_times.txt')) as $line) {
+						if($line != "") {
+							$hour_24_str = $line;
+							$hour = intval($line); 
+							if($hour > 12) {
+								$display_str = sprintf("%02d:00 PM", $hour-12);
+							} else {
+								$display_str = sprintf("%02d:00 AM", $hour);
+							}
+							echo sprintf("<option value=\"$hour_24_str\">$display_str</option>\n"); 
 						}
-						echo sprintf("<option value=\"$hour_24_str\">$display_str</option>\n"); 
 					}
-				}
-			?>
-		</select>
-		<br>
-		<br>
-		When do you check the forecast? 
-		<select id="weather_check_num_hours_list" required>
-			<?php 
-				foreach(explode("\n", file_get_contents('hours_in_advance.txt')) as $line) {
-					if($line != "") {
-						$num_hours = intval($line);
-						if($num_hours < 72) {
-							$display_str = sprintf("%d hours in advance", $num_hours);
-						} else {
-							$display_str = sprintf("%d days in advance", $num_hours/24);
+				?>
+			</select>
+			<br>
+			<br>
+			When do you check the forecast? <br>
+			<select id="weather_check_num_hours_list" required>
+				<?php 
+					foreach(explode("\n", file_get_contents('hours_in_advance.txt')) as $line) {
+						if($line != "") {
+							$num_hours = intval($line);
+							if($num_hours < 72) {
+								$display_str = sprintf("%d hours in advance", $num_hours);
+							} else {
+								$display_str = sprintf("%d days in advance", $num_hours/24);
+							}
+							echo sprintf("<option value=\"$num_hours\">$display_str</option>\n"); 
 						}
-						echo sprintf("<option value=\"$num_hours\">$display_str</option>\n"); 
 					}
+				?>
+			</select>
+			<br>
+			<br>
+			Show data for: <br>
+			<select id="graph_domain_num_days_list" required>
+				<?php 
+					foreach(explode("\n", file_get_contents('graph_domain_num_days.txt')) as $line) {
+						if($line != "") {
+							$graph_domain_num_days = intval($line);
+							echo "<option value=\"$graph_domain_num_days\">the last $graph_domain_num_days days</option>\n"; 
+						}
+					}
+				?>
+			</select>
+			<br>
+			<br>
+			<?php
+				if($is_main_page_dynamic) {
+					echo 'Graph end date: <br>
+					<input id="end_date_field" type="text" value="today"></input>
+					<br>
+					<br>';
 				}
 			?>
-		</select>
-		<br>
-		<br>
-		Show data for:
-		<select id="graph_domain_num_days_list" required>
-			<?php 
-				foreach(explode("\n", file_get_contents('graph_domain_num_days.txt')) as $line) {
-					if($line != "") {
-						$graph_domain_num_days = intval($line);
-						echo "<option value=\"$graph_domain_num_days\">the last $graph_domain_num_days days</option>\n"; 
-					}
+			<?php
+				if($is_main_page_dynamic) {
+					echo '<button onclick="update_img_from_controls()">Update</button>
+					<br>
+					<br>';
 				}
 			?>
-		</select>
+			</div>
+			<div style="float: right;">
+				<img src="blank_1x629.gif">
+			</div>
+			<div style="float: right;">
+				<img id="img_graph" src="">
+			</div>
+			<br style="clear: both;" />
+		</div>
 		<br>
-		<br>
-		<?php
-			if($is_main_page_dynamic) {
-				echo 'Graph end date: <input id="end_date_field" type="text" value="today"></input>
-				<br>
-				<br>';
-			}
-		?>
-		<?php
-			if($is_main_page_dynamic) {
-				echo '<button onclick="update_img_from_controls()">Update</button>
-				<br>
-				<br>';
-			}
-		?>
-		<img id="img_graph" src="">
-		<p id="p_scores"/>
+		<div>
+			<div style="float: left;">
+				<p id="p_scores"/>
+			</div>
+			<div style="float: right; visibility:hidden;">
+				1<br> 2<br> 3<br> 4<br> 5<br> 6<br> 7<br> 8<br> 9<br> 10<br>
+				1<br> 2<br> 3<br> 4<br> 5<br> 6<br> 7<br> 8<br> 9<br> 10<br>
+			</div>
+		</div>
 	</body>
 </html>
