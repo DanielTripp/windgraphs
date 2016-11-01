@@ -62,6 +62,6 @@ if __name__ == '__main__':
 	while True:
 		make_all_files_if_out_of_date()
 		time.sleep(60*30)
-
+		windgraphs.db_reconnect()
 
 

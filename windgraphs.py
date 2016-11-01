@@ -120,6 +120,16 @@ def db_connect():
 	DATABASE_CONNECT_KEYWORD_ARGS = {}
 	g_db_conn = psycopg2.connect(*DATABASE_CONNECT_POSITIONAL_ARGS, **DATABASE_CONNECT_KEYWORD_ARGS)
 
+def db_disconnect():
+	global g_db_conn
+	if g_db_conn is not None:
+		g_db_conn.close()
+		g_db_conn = None
+
+def db_reconnect():
+	db_disconnect()
+	db_connect()
+
 def db_conn():
 	if g_db_conn is None:
 		db_connect()
