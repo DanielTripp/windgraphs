@@ -49,9 +49,12 @@ def make_all_files_if_out_of_date():
 					traceback.print_exc()
 
 def write_file(filename_, contents_obj_):
-	with open(filename_, 'w') as fout:
+	tempfile_fd, tempfile_path = tempfile.mkstemp(dir=os.path.dirname(filename_))
+	os.close(tempfile_fd)
+	with open(tempfile_path, 'w') as fout:
 		json.dump(contents_obj_, fout)
-	os.chmod(filename_, stat.S_IRUSR | stat.S_IWUSR | stat.S_IRGRP | stat.S_IROTH)
+	os.chmod(tempfile_path, stat.S_IRUSR | stat.S_IWUSR | stat.S_IRGRP | stat.S_IROTH)
+	os.rename(tempfile_path, filename_)
 
 if __name__ == '__main__':
 
