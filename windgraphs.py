@@ -840,7 +840,7 @@ def copy_parsed_observations_for_testing(src_end_em_, dest_end_em_, time_window_
 def get_graph_info(target_time_of_day_, weather_check_num_hours_in_advance_, end_date_, num_days_):
 	target_time_of_day = datetime.time(target_time_of_day_, 00)
 
-	plt.figure(1)
+	main_figure = plt.figure(1)
 	fig, ax = plt.subplots()
 	fig.set_size_inches(14, 8)
 
@@ -942,6 +942,8 @@ def get_graph_info(target_time_of_day_, weather_check_num_hours_in_advance_, end
 	buf.seek(0)
 	png_content = buf.read()
 	png_content_base64 = base64.b64encode(png_content)
+	main_figure.clf()
+	plt.close()
 
 	channel_to_score = get_channel_to_score(observation_runs, forecast_channel_to_runs)
 
