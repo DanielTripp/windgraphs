@@ -649,12 +649,6 @@ def get_near_time_retrieveds(table_, time_em_, sooner_aot_later_, maxrows_, time
 	finally:
 		curs.close()
 
-def get_nearest_time_retrieveds(table_, time_em_, maxrows_each_side_, time_span_each_side_):
-	less_thans = get_near_time_retrieveds(table_, time_em_, False, maxrows_each_side_, time_span_each_side_)
-	greater_thans = get_near_time_retrieveds(table_, time_em_, True, maxrows_each_side_, time_span_each_side_)
-	r = list(reversed(less_thans)) + greater_thans
-	return r
-
 def get_near_time_retrieved(table_, time_em_, sooner_aot_later_):
 	r = get_near_time_retrieveds(table_, time_em_, sooner_aot_later_, 1, None)
 	assert len(r) <= 1
