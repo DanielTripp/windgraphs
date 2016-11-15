@@ -15,5 +15,5 @@ if __name__ == '__main__':
 	date = datetime.date.today()
 	for i in range(12):
 		print 'Date: %s' % date 
-		windgraphs.get_observations_and_insert_into_db_single_month(date, False, 1)
+		windgraphs.get_envcan_observations_and_insert_into_db_single_month(date, False, 1)
 		date = get_prev_month(date)

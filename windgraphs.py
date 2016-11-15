@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 import sys, urllib2, json, pprint, re, datetime, os, threading, traceback, io, math, base64, StringIO, csv, tempfile
+import dateutil.parser, dateutil.tz
 import BeautifulSoup
 import psycopg2
 import matplotlib
@@ -317,9 +318,9 @@ def zip_filter(lists_, func_):
 	for l in lists_:
 		l[:] = [e for i, e in enumerate(l) if keep[i]]
 
-def get_observations_web_response(year_, month_):
+def get_envcan_observations_web_response(year_, month_):
 	if DEV_READ_FROM_FILES:
-		with open('d-current-conditions') as fin:
+		with open('d-current-conditions-envcan') as fin:
 			r = fin.read()
 	else:
 		# Thanks to ftp://ftp.tor.ec.gc.ca/Pub/Get_More_Data_Plus_de_donnees/Readme.txt 
@@ -328,7 +329,7 @@ def get_observations_web_response(year_, month_):
 		url = url % (year_, month_)
 		r = urllib2.urlopen(url).read()
 		if DEV_WRITE_TO_FILES:
-			with open('d-current-conditions', 'w') as fout:
+			with open('d-current-conditions-envcan', 'w') as fout:
 				fout.write(r)
 	return r
 
@@ -346,7 +347,7 @@ class Observation(object):
 	def __repr__(self):
 		return self.__str__()
 
-def parse_observation_web_response(web_response_):
+def parse_envcan_observation_web_response(web_response_):
 	r = []
 	in_data_yet = False
 	for line in web_response_.splitlines():
@@ -390,15 +391,19 @@ def insert_parsed_forecast_into_db(curs_, forecast_):
 			em_to_str(forecast_.target_time), forecast_.base_wind, forecast_.gust_wind]
 	curs_.execute('INSERT INTO wind_forecasts_parsed VALUES (%s,%s,%s,%s,%s,%s,%s)', cols)
 
+''' This returns True on success, but it will probably always succeed. 
+The chances of the primary key on (channel, time_retrieved) are small.  
+This check for integrity error makes more sense on the PARSED observations, and for envcan only.
+'''
 @lock
 @trans
-def insert_raw_observation_into_db(web_response_str_):
+def insert_raw_observation_into_db(channel_, web_response_str_):
 	r = False
 	curs = db_conn().cursor()
 	try:
 		time_em = now_em()
 		time_str = em_to_str(time_em)
-		cols = ['gc.ca', time_em, time_str, web_response_str_]
+		cols = [channel_, time_em, time_str, web_response_str_]
 		curs.execute('INSERT INTO wind_observations_raw VALUES (%s,%s,%s,%s)', cols)
 		r = True
 	except psycopg2.IntegrityError, e:
@@ -436,7 +441,7 @@ def get_raw_observation_from_db(t_):
 	curs.close()
 	return r
 
-def print_reparsed_observation_from_db(datestr_):
+def print_reparsed_observation_from_db(channel_, datestr_):
 	t = get_nearest_time_retrieved('wind_observations_raw', datestr_)
 	if t is None:
 		print 'No rows found'
@@ -445,7 +450,7 @@ def print_reparsed_observation_from_db(datestr_):
 		print t
 		print em_to_str(t)
 		print 
-		print parse_observation_web_response(content)
+		print parse_envcan_observation_web_response(content)
 
 def print_reparsed_forecasts_from_db(weather_channel_, datestr_):
 	t = get_nearest_raw_forecast_time_retrieved(weather_channel_, datestr_)
@@ -472,23 +477,97 @@ def get_this_month_and_last_dates():
 		last_month_date -= datetime.timedelta(1)
 	return (today, last_month_date)
 
-def get_observations_and_insert_into_db(dry_run_, printlevel_):
-	this_month_date, last_month_date = get_this_month_and_last_dates()
-	get_observations_and_insert_into_db_single_month(this_month_date, dry_run_, printlevel_)
-	get_observations_and_insert_into_db_single_month(last_month_date, dry_run_, printlevel_)
+def get_observations_and_insert_into_db(channel_, dry_run_, printlevel_):
+	if channel_ == 'gc.ca':
+		get_envcan_observations_and_insert_into_db(dry_run_, printlevel_)
+	elif channel_ == 'navcan':
+		get_navcan_observations_and_insert_into_db(dry_run_, printlevel_)
+	else:
+		raise Exception('Unknown observation channel: "%s"' % channel_)
 
-def get_observations_and_insert_into_db_single_month(date_, dry_run_, printlevel_):
+def get_navcan_observations_web_response():
+	if DEV_READ_FROM_FILES:
+		with open('d-current-conditions-navcan') as fin:
+			r = fin.read()
+	else:
+		url = 'http://atm.navcanada.ca/atm/iwv/CYTZ'
+		r = urllib2.urlopen(url).read()
+		if DEV_WRITE_TO_FILES:
+			with open('d-current-conditions-navcan', 'w') as fout:
+				fout.write(r)
+	return r
+
+def get_navcan_observations_and_insert_into_db(dry_run_, printlevel_):
 	assert printlevel_ in (0, 1, 2)
-	web_response = get_observations_web_response(date_.year, date_.month)
+	web_response = get_navcan_observations_web_response()
+	if printlevel_ == 2:
+		print '(navcan) raw observation:'
+		print web_response
+	if not dry_run_:
+		insert_success = insert_raw_observation_into_db('navcan', web_response)
+		if printlevel_ in (1, 2):
+			print '(navcan) insert (raw) was a success: %s' % (insert_success)
+	parsed_observation = parse_navcan_observation_web_response(web_response)
+	if printlevel_ == 2:
+		print '(navcan) parsed observation:'
+		print parsed_observation
+	if not dry_run_:
+		num_inserts = 0
+		if insert_parsed_observation_into_db(parsed_observation):
+			num_inserts += 1
+		if printlevel_ in (1, 2):
+			print '(navcan) total parsed observations: 1.  Num successfully inserted: %d' % (num_inserts)
+
+# Unlike forecasts, we get a "time retrieved" from the web content on parse 
+# here, so we insert that into the "parsed observations" table, so the "time 
+# retrieved" values will not match between the "raw observations" and "parsed 
+# observations" table.  It's unclear if there are any strong reasons for this.  
+def parse_navcan_observation_web_response(web_response_):
+	soup = BeautifulSoup.BeautifulSoup(web_response_)
+	wind = None
+	gust = None
+	for x in soup.findAll('td', {'class': 'stat-cell'}):
+		for content in x.contents:
+			if 'Gusting' in content:
+				gust = x.span.string
+			elif 'Wind Speed' in content:
+				# Witnessed this being ' ' once, 2016-08-18 23:40.  Other parts of the 
+				# page looked like they were in error too.  
+				wind = x.span.string
+			elif 'Updated' in content:
+				time_retrieved = x.span.string
+
+	if wind == 'CALM':
+		wind = 0
+	else:
+		wind = int(wind)
+
+	if gust == '--':
+		gust = wind
+	else:
+		gust = gust.lstrip('G')
+	gust = int(gust)
+
+	time_retrieved = datetime_to_em(dateutil.parser.parse(time_retrieved).astimezone(dateutil.tz.tzlocal()))
+	return Observation('navcan', time_retrieved, wind, gust)
+
+def get_envcan_observations_and_insert_into_db(dry_run_, printlevel_):
+	this_month_date, last_month_date = get_this_month_and_last_dates()
+	get_envcan_observations_and_insert_into_db_single_month(this_month_date, dry_run_, printlevel_)
+	get_envcan_observations_and_insert_into_db_single_month(last_month_date, dry_run_, printlevel_)
+
+def get_envcan_observations_and_insert_into_db_single_month(date_, dry_run_, printlevel_):
+	assert printlevel_ in (0, 1, 2)
+	web_response = get_envcan_observations_web_response(date_.year, date_.month)
 	monthstr = '(%d-%02d)' % (date_.year, date_.month)
 	if printlevel_ == 2:
 		print '%s raw observations:' % monthstr
 		print web_response
 	if not dry_run_:
-		insert_success = insert_raw_observation_into_db(web_response)
+		insert_success = insert_raw_observation_into_db('gc.ca', web_response)
 		if printlevel_ in (1, 2):
 			print '%s insert (raw) was a success: %s' % (monthstr, insert_success)
-	parsed_observations = parse_observation_web_response(web_response)
+	parsed_observations = parse_envcan_observation_web_response(web_response)
 	if printlevel_ == 2:
 		print '%s parsed observations:' % monthstr
 		for observation in parsed_observations:
