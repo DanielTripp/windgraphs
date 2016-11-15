@@ -428,10 +428,10 @@ def insert_parsed_observation_into_db(obs_):
 		curs.close()
 	return r
 
-def get_raw_observation_from_db(t_):
-	sqlstr = 'select content from wind_observations_raw where time_retrieved = %d' % (t_)
+def get_raw_observation_from_db(channel_, t_):
+	sqlstr = 'select content from wind_observations_raw where channel = %s and time_retrieved = %s'
 	curs = db_conn().cursor()
-	curs.execute(sqlstr)
+	curs.execute(sqlstr, [channel_, t_])
 	for row in curs:
 		content = row[0]
 		r = content
@@ -442,11 +442,11 @@ def get_raw_observation_from_db(t_):
 	return r
 
 def print_reparsed_observation_from_db(channel_, datestr_):
-	t = get_nearest_time_retrieved('wind_observations_raw', datestr_)
+	t = get_nearest_time_retrieved('wind_observations_raw', channel_, datestr_)
 	if t is None:
 		print 'No rows found'
 	else:
-		content = get_raw_observation_from_db(t)
+		content = get_raw_observation_from_db(channel_, t)
 		print t
 		print em_to_str(t)
 		print 
@@ -630,13 +630,13 @@ def get_forecast_nearest_time_retrieveds(weather_channel_, time_retrieved_em_, t
 	r = list(reversed(less_thans)) + greater_thans
 	return r
 
-def get_near_time_retrieveds(table_, time_em_, sooner_aot_later_, maxrows_, time_span_):
+def get_near_time_retrieveds(table_, channel_, time_em_, sooner_aot_later_, maxrows_, time_span_):
 	assert table_.startswith('wind_observations_')
 	sign = ('>=' if sooner_aot_later_ else '<=')
 	order = ('asc' if sooner_aot_later_ else 'desc')
 	sqlstr = '''select time_retrieved from %s  
-			where channel = 'gc.ca' and time_retrieved %s %d order by time_retrieved %s limit %d''' \
-			% (table_, sign, time_em_, order, maxrows_)
+			where channel = '%s' and time_retrieved %s %d order by time_retrieved %s limit %d''' \
+			% (table_, channel_, sign, time_em_, order, maxrows_)
 	curs = db_conn().cursor()
 	try:
 		curs.execute(sqlstr)
@@ -649,8 +649,8 @@ def get_near_time_retrieveds(table_, time_em_, sooner_aot_later_, maxrows_, time
 	finally:
 		curs.close()
 
-def get_near_time_retrieved(table_, time_em_, sooner_aot_later_):
-	r = get_near_time_retrieveds(table_, time_em_, sooner_aot_later_, 1, None)
+def get_near_time_retrieved(table_, channel_, time_em_, sooner_aot_later_):
+	r = get_near_time_retrieveds(table_, channel_, time_em_, sooner_aot_later_, 1, None)
 	assert len(r) <= 1
 	return (None if len(r) == 0 else r[0])
 
@@ -675,10 +675,10 @@ def get_raw_forecast_near_time_retrieved(weather_channel_, t_, sooner_aot_later_
 	finally:
 		curs.close()
 
-def get_nearest_time_retrieved(table_, datestr_):
+def get_nearest_time_retrieved(table_, channel_, datestr_):
 	time_em = str_to_em(datestr_)
-	lt_time = get_near_time_retrieved(table_, time_em-1, False)
-	gt_time = get_near_time_retrieved(table_, time_em, True)
+	lt_time = get_near_time_retrieved(table_, channel_, time_em-1, False)
+	gt_time = get_near_time_retrieved(table_, channel_, time_em, True)
 	return vote_on_nearest_time(time_em, lt_time, gt_time)
 
 def vote_on_nearest_time(t_, lt_time_, gt_time_):
@@ -696,12 +696,12 @@ def vote_on_nearest_time(t_, lt_time_, gt_time_):
 			r = gt_time_
 	return r
 	
-def print_raw_observation_from_db(datestr_):
-	t = get_nearest_time_retrieved('wind_observations_raw', datestr_)
+def print_raw_observation_from_db(channel_, datestr_):
+	t = get_nearest_time_retrieved('wind_observations_raw', channel_, datestr_)
 	if t is None:
 		print 'No rows found'
 	else:
-		content = get_raw_observation_from_db(t)
+		content = get_raw_observation_from_db(channel_, t)
 		print t
 		print em_to_str(t)
 		print 
@@ -731,13 +731,13 @@ def get_raw_forecast_from_db(weather_channel_, t_):
 	curs.close()
 	return r
 
-def get_observation_from_db(t_):
+def get_observation_from_db(channel_, t_):
 	assert isinstance(t_, long)
-	sqlstr = '''select base_wind, gust_wind from wind_observations_parsed where channel = 'gc.ca' 
-			and time_retrieved = %d''' % (t_)
+	sqlstr = '''select base_wind, gust_wind from wind_observations_parsed where channel = %s
+			and time_retrieved = %s'''
 	curs = db_conn().cursor()
 	try:
-		curs.execute(sqlstr)
+		curs.execute(sqlstr, [channel_, t_])
 		for row in curs:
 			base_wind, gust_wind = row
 			return Observation('gc.ca', t_, base_wind, gust_wind)
@@ -924,7 +924,7 @@ def get_graph_info(target_time_of_day_, weather_check_num_hours_in_advance_, end
 	for target_t in target_times:
 		check_weather_t = target_t - 1000*60*60*weather_check_num_hours_in_advance_
 
-		observation = get_observation_from_db(target_t)
+		observation = get_observation_from_db('gc.ca', target_t)
 		if observation is None:
 			observation_runs.append([])
 		else:
