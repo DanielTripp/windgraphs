@@ -22,7 +22,7 @@ def get_hours_in_advance():
 def get_graph_domain_num_days():
 	return get_file_contents_as_list_of_integers('graph_domain_num_days.txt')
 
-def get_out_filename(target_time_, hours_in_advance_, graph_domain_num_days_):
+def get_json_filename(target_time_, hours_in_advance_, graph_domain_num_days_):
 	r = 'graph_info___target_time_%02d___hours_in_advance_%d___graph_domain_num_days_%d.json' \
 			% (target_time_, hours_in_advance_, graph_domain_num_days_)
 	r = os.path.join(DEST_DIR, r)
@@ -37,11 +37,11 @@ def make_all_files_if_out_of_date():
 		for hours_in_advance in get_hours_in_advance():
 			for graph_domain_num_days in get_graph_domain_num_days():
 				try:
-					out_filename = get_out_filename(target_time, hours_in_advance, graph_domain_num_days)
-					if is_file_out_of_date(out_filename):
+					json_filename = get_json_filename(target_time, hours_in_advance, graph_domain_num_days)
+					if is_file_out_of_date(json_filename):
 						graph_info = windgraphs.get_graph_info(
 								target_time, hours_in_advance, graph_end_date, graph_domain_num_days)
-						write_file(out_filename, graph_info)
+						write_file(json_filename, graph_info)
 				except Exception:
 					print >> sys.stderr, now_str(), \
 							'Exception while making file.  Args: target_time=%d, hours_in_advance=%d, graph_domain_num_days=%d' \
