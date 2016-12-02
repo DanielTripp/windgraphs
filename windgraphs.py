@@ -262,9 +262,15 @@ def windguru_parse_web_response(web_response_str_, time_retrieved_):
 				for model in models:
 					if model in parsed_data['fcst']:
 						data = parsed_data['fcst'][model]
-						retrieved_datetime = data['update_last'].split(',')[1].lstrip()
-						retrieved_datetime = ' '.join(retrieved_datetime.split(' ', 3)[:3])
-						retrieved_datetime = datetime.datetime.strptime(retrieved_datetime, '%d %b %Y')
+						retrieved_datetime = data['update_last']
+						# 'update_last' changed format around noon on November 22, 2016.  
+						# Before then it was in the format "Thu, 01 Sep 2016 22:50:02 +0000", after it was "2016-12-01 22:50:02". 
+						if re.match(r'\d\d\d\d-\d\d-\d\d', retrieved_datetime):
+							retrieved_datetime = datetime.datetime.strptime(retrieved_datetime[:10], '%Y-%m-%d')
+						else:
+							retrieved_datetime = data['update_last'].split(',')[1].lstrip()
+							retrieved_datetime = ' '.join(retrieved_datetime.split(' ', 3)[:3])
+							retrieved_datetime = datetime.datetime.strptime(retrieved_datetime, '%d %b %Y')
 						retrieved_year = retrieved_datetime.year
 						retrieved_month = retrieved_datetime.month
 						retrieved_day = retrieved_datetime.day
