@@ -41,14 +41,14 @@ def make_all_files_if_out_of_date():
 					if is_file_out_of_date(json_filename):
 						graph_info = windgraphs.get_graph_info(
 								target_time, hours_in_advance, graph_end_date, graph_domain_num_days)
-						write_file(json_filename, graph_info)
+						write_json_file(json_filename, graph_info)
 				except Exception:
 					print >> sys.stderr, now_str(), \
 							'Exception while making file.  Args: target_time=%d, hours_in_advance=%d, graph_domain_num_days=%d' \
 							% (target_time, hours_in_advance, graph_domain_num_days)
 					traceback.print_exc()
 
-def write_file(filename_, contents_obj_):
+def write_json_file(filename_, contents_obj_):
 	tempfile_fd, tempfile_path = tempfile.mkstemp(dir=os.path.dirname(filename_))
 	os.close(tempfile_fd)
 	with open(tempfile_path, 'w') as fout:
