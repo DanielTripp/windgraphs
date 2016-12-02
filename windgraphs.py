@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-import sys, urllib2, json, pprint, re, datetime, os, threading, traceback, io, math, base64, StringIO, csv, tempfile
+import sys, urllib2, json, pprint, re, datetime, os, threading, traceback, io, math, base64, StringIO, csv, tempfile, stat
 import dateutil.parser, dateutil.tz
 import BeautifulSoup
 import psycopg2
@@ -24,6 +24,8 @@ assert set(WEATHER_CHANNEL_TO_COLOR.keys()) == set(PARSED_WEATHER_CHANNELS) \
 		== set(WEATHER_CHANNEL_TO_LONG_MULTILINE_NAME.keys())
 
 PASSWORD = file_to_string(os.path.expanduser('~/.windgraphs/DB_PASSWORD')).strip()
+
+JSON_DIR = 'static_graph_info'
 
 DEV = os.path.exists('DEV')
 DEV_READ_FROM_FILES = DEV and 0
@@ -1065,6 +1067,26 @@ def get_line_scale(num_days_):
 		return get_range_val((7,1.0), (30,0.5), num_days_)
 	else:
 		return 0.5
+
+def get_json_filename(target_time_, hours_in_advance_, graph_domain_num_days_):
+	r = 'graph_info___target_time_%02d___hours_in_advance_%d___graph_domain_num_days_%d.json' \
+			% (target_time_, hours_in_advance_, graph_domain_num_days_)
+	r = os.path.join(JSON_DIR, r)
+	return r
+
+def create_json_dir_if_necessary():
+	full_dest_dir = os.path.join(os.path.dirname(sys.argv[0]), JSON_DIR)
+	if not os.path.isdir(JSON_DIR):
+		os.makedirs(JSON_DIR)
+
+def write_json_file(filename_, contents_obj_):
+	create_json_dir_if_necessary()
+	tempfile_fd, tempfile_path = tempfile.mkstemp(dir=os.path.dirname(filename_))
+	os.close(tempfile_fd)
+	with open(tempfile_path, 'w') as fout:
+		json.dump(contents_obj_, fout)
+	os.chmod(tempfile_path, stat.S_IRUSR | stat.S_IWUSR | stat.S_IRGRP | stat.S_IROTH)
+	os.rename(tempfile_path, filename_)
 
 if __name__ == '__main__':
 
