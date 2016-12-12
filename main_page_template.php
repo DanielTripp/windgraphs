@@ -21,21 +21,36 @@ for(var channel in WEATHER_CHANNEL_TO_LONG_MULTILINE_NAME) {
 }
 
 function initialize() {
-	init_handlers();
-	update_img_from_controls();
+	init_gui_controls();
+	update_img_from_gui_controls();
 }
 
-function init_handlers() {
-	<?php
-		if(!$is_main_page_dynamic) {
-			echo '["#target_time_list", "#weather_check_num_hours_list", "#graph_domain_num_days_list"].forEach(function(ctrl_name) {
-				$(ctrl_name).change(update_img_from_controls);
-			});';
-		}
-	?>
+function init_gui_controls() {
+	<?php if(!$is_main_page_dynamic) { ?>
+		["#target_time_list", "#weather_check_num_hours_list", "#graph_domain_num_days_list"].forEach(function(ctrl_name) {
+			var oldVal = sessionStorage.getItem(ctrl_name);
+			if(oldVal != null) {
+				$(ctrl_name).val(oldVal);
+			}
+			$(ctrl_name).change(on_gui_control_changed);
+		});
+	<?php } ?>
 }
 
-function update_img_from_controls() {
+function on_gui_control_changed() {
+	update_img_from_gui_controls();
+	<?php if(!$is_main_page_dynamic) { ?>
+			write_gui_control_values_to_storage();
+	<?php } ?>
+}
+
+function write_gui_control_values_to_storage() {
+	["#target_time_list", "#weather_check_num_hours_list", "#graph_domain_num_days_list"].forEach(function(ctrl_name) {
+		sessionStorage.setItem(ctrl_name, $(ctrl_name).val());
+	});
+}
+
+function update_img_from_gui_controls() {
 	var target_time = $("#target_time_list").val();
 	var weather_check_num_hours = $("#weather_check_num_hours_list").val();
 	<?php
@@ -176,7 +191,7 @@ $(document).ready(initialize);
 			?>
 			<?php
 				if($is_main_page_dynamic) {
-					echo '<button onclick="update_img_from_controls()">Update</button>
+					echo '<button onclick="update_img_from_gui_controls()">Update</button>
 					<br>
 					<br>';
 				}
