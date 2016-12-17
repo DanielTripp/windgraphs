@@ -28,7 +28,7 @@ function initialize() {
 function init_gui_controls() {
 	<?php if(!$is_main_page_dynamic) { ?>
 		["#target_time_list", "#weather_check_num_hours_list", "#graph_domain_num_days_list"].forEach(function(ctrl_name) {
-			var oldVal = localStorage.getItem(ctrl_name);
+			var oldVal = sessionStorage.getItem(ctrl_name);
 			if(oldVal != null) {
 				$(ctrl_name).val(oldVal);
 			}
@@ -46,7 +46,7 @@ function on_gui_control_changed() {
 
 function write_gui_control_values_to_storage() {
 	["#target_time_list", "#weather_check_num_hours_list", "#graph_domain_num_days_list"].forEach(function(ctrl_name) {
-		localStorage.setItem(ctrl_name, $(ctrl_name).val());
+		sessionStorage.setItem(ctrl_name, $(ctrl_name).val());
 	});
 }
 
