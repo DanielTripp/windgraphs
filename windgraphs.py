@@ -961,13 +961,14 @@ def get_graph_info(target_time_of_day_, weather_check_num_hours_in_advance_, end
 	def yvals(run__):
 		return [e[1] for e in run__]
 
-	line_scale = get_line_scale(num_days_)
+	line_width = get_line_width(num_days_)
+	marker_size = get_marker_size(num_days_)
 
 	# Draw "actual wind" lines and dots: 
 	observation_color = 'black'
 	for run in observation_runs:
-		plt.plot(xvals(run), yvals(run), color=observation_color, marker='o', markeredgewidth=11*line_scale, 
-				linestyle='solid', linewidth=6*line_scale)
+		plt.plot(xvals(run), yvals(run), color=observation_color, marker='o', markersize=marker_size, 
+				linestyle='solid', linewidth=line_width)
 
 	# Draw forecast channel lines and dots: 
 	for channel in forecast_channel_to_runs.keys():
@@ -975,8 +976,8 @@ def get_graph_info(target_time_of_day_, weather_check_num_hours_in_advance_, end
 		for forecast_run in forecast_channel_to_runs[channel]:
 			xs = xvals(forecast_run)
 			ys = yvals(forecast_run)
-			plt.plot(xs, ys, color=color, marker='o', markeredgewidth=6*line_scale, markeredgecolor=color, 
-					linestyle='solid', linewidth=4*line_scale)
+			plt.plot(xs, ys, color=color, marker='o', markeredgecolor=color, markersize=marker_size,
+					linestyle='solid', linewidth=line_width)
 
 	# Kludge.  Making room for our weather channel names. 
 	xlim_margin = (0.18*(num_days_-7) + 1.5)*24*60*60*1000
@@ -1066,11 +1067,13 @@ def get_channel_to_score(observation_runs_, forecast_channel_to_runs_):
 def get_xaxis_tick_step(num_days_):
 	return int(math.ceil(get_range_val((20,1.0), (40,2.0), num_days_)))
 
-def get_line_scale(num_days_):
-	if num_days_ < 30:
-		return get_range_val((7,1.0), (30,0.5), num_days_)
-	else:
-		return 0.5
+def get_line_width(num_days_):
+	r = {15:1.0, 30:1.0, 90:0.5, 365:0.2}[num_days_]
+	return r
+
+def get_marker_size(num_days_):
+	r = {15:7,   30:7,   90:3,   365:1  }[num_days_]
+	return r
 
 def get_json_filename(target_time_, hours_in_advance_, graph_domain_num_days_):
 	r = 'graph_info___target_time_%02d___hours_in_advance_%d___graph_domain_num_days_%d.json' \
