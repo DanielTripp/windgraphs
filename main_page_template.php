@@ -200,7 +200,7 @@ $(document).ready(initialize);
 			<div style="float: right;">
 				<img src="blank_1x629.gif">
 			</div>
-			<div style="float: right;">
+			<div style="float: right; overflow:scroll; width:1200px;">
 				<img id="img_graph" src="">
 			</div>
 			<br style="clear: both;" />

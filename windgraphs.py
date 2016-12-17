@@ -924,12 +924,15 @@ def copy_parsed_observations_for_testing(src_end_em_, dest_end_em_, time_window_
 	finally:
 		curs.close()
 
+def get_graph_width_inches(num_days_):
+	return {15:14, 30:14, 90:42, 365:170}[num_days_]
+
 def get_graph_info(target_time_of_day_, weather_check_num_hours_in_advance_, end_date_, num_days_):
 	target_time_of_day = datetime.time(target_time_of_day_, 00)
 
 	main_figure = plt.figure(1)
 	fig, ax = plt.subplots()
-	fig.set_size_inches(14, 8)
+	fig.set_size_inches(get_graph_width_inches(num_days_), 8)
 
 	days = get_days(end_date_, num_days_)
 	target_times = [datetime_to_em(datetime.datetime.combine(target_day, target_time_of_day)) for target_day in days]
@@ -961,14 +964,11 @@ def get_graph_info(target_time_of_day_, weather_check_num_hours_in_advance_, end
 	def yvals(run__):
 		return [e[1] for e in run__]
 
-	line_width = get_line_width(num_days_)
-	marker_size = get_marker_size(num_days_)
-
 	# Draw "actual wind" lines and dots: 
 	observation_color = 'black'
 	for run in observation_runs:
-		plt.plot(xvals(run), yvals(run), color=observation_color, marker='o', markersize=marker_size, 
-				linestyle='solid', linewidth=line_width)
+		plt.plot(xvals(run), yvals(run), color=observation_color, marker='o', markersize=7, 
+				linestyle='solid', linewidth=1)
 
 	# Draw forecast channel lines and dots: 
 	for channel in forecast_channel_to_runs.keys():
@@ -976,11 +976,11 @@ def get_graph_info(target_time_of_day_, weather_check_num_hours_in_advance_, end
 		for forecast_run in forecast_channel_to_runs[channel]:
 			xs = xvals(forecast_run)
 			ys = yvals(forecast_run)
-			plt.plot(xs, ys, color=color, marker='o', markeredgecolor=color, markersize=marker_size,
-					linestyle='solid', linewidth=line_width)
+			plt.plot(xs, ys, color=color, marker='o', markeredgecolor=color, markersize=7,
+					linestyle='solid', linewidth=1)
 
 	# Kludge.  Making room for our weather channel names. 
-	xlim_margin = (0.18*(num_days_-7) + 1.5)*24*60*60*1000
+	xlim_margin = {15:4, 30:6, 90:8, 365:8}[num_days_]*24*60*60*1000
 	plt.xlim(em_to_datetime(target_times[0]-xlim_margin), em_to_datetime(target_times[-1]+1000*60*60*24))
 
 	# Draw date labels on X-axis:
@@ -1067,14 +1067,6 @@ def get_channel_to_score(observation_runs_, forecast_channel_to_runs_):
 def get_xaxis_tick_step(num_days_):
 	return int(math.ceil(get_range_val((20,1.0), (40,2.0), num_days_)))
 
-def get_line_width(num_days_):
-	r = {15:1.0, 30:1.0, 90:0.5, 365:0.2}[num_days_]
-	return r
-
-def get_marker_size(num_days_):
-	r = {15:7,   30:7,   90:3,   365:1  }[num_days_]
-	return r
-
 def get_json_filename(target_time_, hours_in_advance_, graph_domain_num_days_):
 	r = 'graph_info___target_time_%02d___hours_in_advance_%d___graph_domain_num_days_%d.json' \
 			% (target_time_, hours_in_advance_, graph_domain_num_days_)
@@ -1094,6 +1086,22 @@ def write_json_file(filename_, contents_obj_):
 		json.dump(contents_obj_, fout)
 	os.chmod(tempfile_path, stat.S_IRUSR | stat.S_IWUSR | stat.S_IRGRP | stat.S_IROTH)
 	os.rename(tempfile_path, filename_)
+
+def get_file_contents_as_list_of_integers(filename_):
+	r = []
+	with open(filename_) as fin:
+		for line in fin:
+			r.append(int(line.rstrip()))
+	return r
+
+def get_target_times():
+	return get_file_contents_as_list_of_integers('target_times.txt')
+
+def get_hours_in_advance():
+	return get_file_contents_as_list_of_integers('hours_in_advance.txt')
+
+def get_graph_domain_num_days():
+	return get_file_contents_as_list_of_integers('graph_domain_num_days.txt')
 
 if __name__ == '__main__':
 
