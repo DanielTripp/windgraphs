@@ -1,2 +1,7 @@
 Options +Indexes
 IndexOptions FancyIndexing IgnoreCase NameWidth=* SuppressDescription
+<filesMatch ".*">
+  <ifModule mod_headers.c>
+    Header set Cache-Control "no-cache"
+  </ifModule>
+</filesMatch>

@@ -15,3 +15,5 @@ touch -t 198001010000 static_graph_info/*
 sleep 5
 /etc/init.d/windgraphs status
 
+cp .htaccess-live .htaccess
+
