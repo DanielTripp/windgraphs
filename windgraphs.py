@@ -963,11 +963,13 @@ def get_graph_info(target_time_of_day_, weather_check_num_hours_in_advance_, end
 
 	line_scale = get_line_scale(num_days_)
 
+	# Draw "actual wind" lines and dots: 
 	observation_color = 'black'
 	for run in observation_runs:
 		plt.plot(xvals(run), yvals(run), color=observation_color, marker='o', markeredgewidth=11*line_scale, 
 				linestyle='solid', linewidth=6*line_scale)
 
+	# Draw forecast channel lines and dots: 
 	for channel in forecast_channel_to_runs.keys():
 		color = WEATHER_CHANNEL_TO_COLOR[channel]
 		for forecast_run in forecast_channel_to_runs[channel]:
@@ -980,12 +982,14 @@ def get_graph_info(target_time_of_day_, weather_check_num_hours_in_advance_, end
 	xlim_margin = (0.18*(num_days_-7) + 1.5)*24*60*60*1000
 	plt.xlim(em_to_datetime(target_times[0]-xlim_margin), em_to_datetime(target_times[-1]+1000*60*60*24))
 
+	# Draw date labels on X-axis:
 	fig.autofmt_xdate()
 	date_format = ('%b %d %Y' if end_date_ < datetime.date(1990, 1, 1) else '%b %d') # Include year for testing time frames 
 	ax.xaxis.set_major_formatter(matplotlib.dates.DateFormatter(date_format))
 	ax.xaxis.set_major_locator(matplotlib.ticker.FixedLocator(
 			[pylab.date2num(em_to_datetime(x)) for x in target_times[::get_xaxis_tick_step(num_days_)]]))
 
+	# Draw horizontal lines, lining up with y-axis intervals: 
 	min_xval = observation_runs[0][0][0]
 	max_yval = 1
 	for observation_run in observation_runs:
@@ -996,11 +1000,11 @@ def get_graph_info(target_time_of_day_, weather_check_num_hours_in_advance_, end
 			min_xval = min(min_xval, min(xvals(forecast_run)))
 			max_yval = max(max_yval, max(yvals(forecast_run)))
 	max_yval += 1
-
 	for y in range(0, max_yval+5, 5):
 		plt.axhline(y, color=(0.5,0.5,0.5), alpha=0.5, linestyle='-')
-	plt.yticks(np.arange(0, max_yval+5, 5)) # Do this after the axhline() calls or else the min value might not be respected. 
+	plt.yticks(np.arange(0, max_yval+5, 5)) # Do this /after/ the axhline() calls or else the min value might not be respected. 
 
+	# Draw text labelling each forecast channel and "Actual wind":
 	series_to_first_run = {}
 	series_to_first_run['actual'] = observation_runs[0]
 	for forecast_channel, runs in forecast_channel_to_runs.iteritems():
