@@ -130,7 +130,10 @@ def str_to_em(datetimestr_, format_=None):
 				pass
 			return impl(datetimestr_, '%Y-%m-%d %H:%M:%S')
 		except ValueError:
-			return impl(datetimestr_, '%Y-%m-%d %H:%M')
+			try:
+				return impl(datetimestr_, '%Y-%m-%d %H:%M')
+			except ValueError:
+				return impl(datetimestr_, '%Y-%m-%d')
 	else:
 		return impl(format_)
 
