@@ -2,8 +2,7 @@
 
 import sys, urllib2, json, pprint, re, datetime, os, threading, traceback, io, math, base64, StringIO, csv, tempfile, stat
 import dateutil.parser, dateutil.tz
-import BeautifulSoup
-import psycopg2
+import BeautifulSoup, psycopg2, pytz
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.dates
@@ -157,6 +156,9 @@ class Forecast(object):
 	def __repr__(self):
 		return self.__str__()
 
+	def __eq__(self, other_):
+		return self.__dict__ == other_.__dict__
+
 
 def windfindersuper_get_web_response():
 	if DEV_READ_FROM_FILES:
@@ -209,7 +211,51 @@ def parent(node_, n_):
 		r = r.parent
 	return r
 
+# Possible bug - might not parse correctly forecast target times that are in next year 
+def windfinder_parse_web_response_by_lines(web_response_str_, weather_channel_, time_retrieved_):
+	"""
+	Return a list of Forecast objects. 
+	The windfinder regular forecast and superforecast have different URLs but use the same HTML format. 
+	"""
+	fudge_for_dst = {'wf_reg':True, 'wf_sup':False}[weather_channel_]
+	lines = web_response_str_.splitlines()
+	r = []
+	linei = 0
+	while linei < len(lines):
+		line = lines[linei]
+		if '<div class="weathertable__header">' in line:
+			linei += 1
+			line = lines[linei]
+			dayte = line.strip()
+			dayte = re.sub('^.*? ', '', dayte)
+			cur_year = datetime.datetime.today().year # Danger - if backfilling data from a previous year, this will be a bug. 
+		elif '<span class="value">' in line and '<span class="unit">h</span>' in line:
+			if '<div class="data-time weathertable__cell">' not in lines[linei-1] \
+					or '<div class="cell-timespan weathertable__cellgroup weathertable__cellgroup--stacked">' not in lines[linei-2]:
+				raise Exception('problem on line %d' % (linei+1))
+			hour = int(re.search(r'>(\d+)<', line).group(1))
+		elif '<span class="data-unit">max</span>&nbsp;<span class="units-ws">' in line:
+			if not re.search(r'<div class="data-gusts data--minor [\w]+ weathertable__cell">', lines[linei-1]):
+				raise Exception('problem on line %d' % (linei+1))
+			windgusts = int(re.search(r'>(\d+)<', line).group(1))
+			daytetyme = datetime.datetime.strptime('%s %d %d:00' % (dayte, cur_year, hour), '%b %d %Y %H:%M')
+			if fudge_for_dst and not is_in_dst(daytetyme):
+				daytetyme += datetime.timedelta(hours=1)
+			daytetyme_em = datetime_to_em(daytetyme)
+			r.append(Forecast(weather_channel_, time_retrieved_, daytetyme_em, windspeed, windgusts))
+		elif '<span class="units-ws">' in line:
+			if '<span class="data-wrap">' not in lines[linei-1] \
+					or '<div class="speed">' not in lines[linei-2] \
+					or not re.search(r'<div class="data-bar data--major weathertable__cell wsmax-level-[\d]+">', lines[linei-3]):
+				raise Exception('problem on line %d' % (linei+1))
+			windspeed = int(re.search(r'>(\d+)<', line).group(1))
+		linei += 1
+	return r
+
 def windfinder_parse_web_response(web_response_str_, weather_channel_, time_retrieved_):
+	return windfinder_parse_web_response_by_lines(web_response_str_, weather_channel_, time_retrieved_)
+
+def windfinder_parse_web_response_by_html(web_response_str_, weather_channel_, time_retrieved_):
 	"""
 	Return a list of Forecast objects. 
 	The windfinder regular forecast and superforecast have different URLs but use the same HTML format. 
@@ -220,6 +266,7 @@ def windfinder_parse_web_response(web_response_str_, weather_channel_, time_retr
 		return not('<!--[if' in line__ or '<![endif]' in line__)
 	s = '\n'.join(x for x in web_response_str_.splitlines() if keep(x))
 
+	fudge_for_dst = {'wf_reg':True, 'wf_sup':False}[weather_channel_]
 	r = []
 	soup = BeautifulSoup.BeautifulSoup(s)
 	for x in soup.findAll('div', {'class': 'speed'}):
@@ -229,10 +276,22 @@ def windfinder_parse_web_response(web_response_str_, weather_channel_, time_retr
 					.findAll('span', {'class': 'units-ws'})[0].string)
 			dayte = parent(y, 7).findAll('div', {'class': 'weathertable__header'}, recursive=False)[0].string.strip()
 			dayte = re.sub('^.*? ', '', dayte)
-			hour = parent(y, 5).findAll('span', {'class': 'value'})[0].string
+			hour = int(parent(y, 5).findAll('span', {'class': 'value'})[0].string)
 			cur_year = datetime.datetime.today().year # Danger - if backfilling data from a previous year, this will be a bug. 
-			daytetyme = datetime_to_em(datetime.datetime.strptime('%s %d %s:00' % (dayte, cur_year, hour), '%b %d %Y %H:%M'))
-			r.append(Forecast(weather_channel_, time_retrieved_, daytetyme, windspeed, windgusts))
+			daytetyme = datetime.datetime.strptime('%s %d %d:00' % (dayte, cur_year, hour), '%b %d %Y %H:%M')
+			if fudge_for_dst and not is_in_dst(daytetyme):
+				daytetyme += datetime.timedelta(hours=1)
+			daytetyme_em = datetime_to_em(daytetyme)
+			r.append(Forecast(weather_channel_, time_retrieved_, daytetyme_em, windspeed, windgusts))
+	return r
+
+def is_in_dst(dt_):
+	assert isinstance(dt_, datetime.datetime)
+	toronto_tzinfo = pytz.timezone('America/Toronto')
+	dt_with_timezone = datetime.datetime.fromtimestamp(time.mktime(dt_.timetuple()), toronto_tzinfo)
+	dst_offset_in_seconds = dt_with_timezone.dst().total_seconds()
+	assert dst_offset_in_seconds in (0.0, 3600.0)
+	r = dst_offset_in_seconds > 0
 	return r
 
 def windguru_get_web_response():
@@ -313,10 +372,17 @@ def windguru_parse_web_response(web_response_str_, time_retrieved_):
 						windspeeds = to_ints(windspeeds[cutoff_idx:])
 						windgusts = to_ints(windgusts[cutoff_idx:])
 						for day, hour, windspeed, windgust in zip(days, hours, windspeeds, windgusts):
-							month = (retrieved_month if day >= retrieved_day else retrieved_month+1)
-							daytetyme = datetime.datetime.strptime('%02d-%02d %02d:00 %d' % (month, day, hour, retrieved_year), '%m-%d %H:%M %Y')
+							weatherchannel = model_to_weatherchannel[model]
+							month = (retrieved_month if day >= retrieved_day else (retrieved_month % 12) + 1)
+							def calc_datetime():
+								return datetime.datetime.strptime('%02d-%02d %02d:00 %d' % (month, day, hour, retrieved_year), '%m-%d %H:%M %Y')
+							daytetyme = calc_datetime()
+							fudge_for_dst = {'wg_gfs':True, 'wg_nam':True, 'wg_hrw':False}[weatherchannel]
+							if fudge_for_dst and not is_in_dst(daytetyme):
+								hour += 1
+								daytetyme = calc_datetime()
 							target_time = datetime_to_em(daytetyme)
-							r.append(Forecast(model_to_weatherchannel[model], time_retrieved_, target_time, windspeed, windgust))
+							r.append(Forecast(weatherchannel, time_retrieved_, target_time, windspeed, windgust))
 				break
 	return r
 
@@ -775,7 +841,6 @@ def backfill_reparse_raw_forecast_in_db(weather_channel_, datestr_):
 	else:
 		print t
 		print em_to_str(t)
-		print 
 		web_response = get_raw_forecast_from_db(weather_channel_, t)
 		if weather_channel_ == 'wg':
 			forecasts = windguru_parse_web_response(web_response, t)
