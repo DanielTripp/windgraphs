@@ -226,8 +226,8 @@ def windfinder_parse_web_response_by_lines(web_response_str_, weather_channel_, 
 		if '<div class="weathertable__header">' in line:
 			linei += 1
 			line = lines[linei]
-			dayte = line.strip()
-			dayte = re.sub('^.*? ', '', dayte)
+			month_and_day = line.strip()
+			month_and_day = re.sub('^.*? ', '', month_and_day)
 			cur_year = datetime.datetime.today().year # Danger - if backfilling data from a previous year, this will be a bug. 
 		elif '<span class="value">' in line and '<span class="unit">h</span>' in line:
 			if '<div class="data-time weathertable__cell">' not in lines[linei-1] \
@@ -238,7 +238,7 @@ def windfinder_parse_web_response_by_lines(web_response_str_, weather_channel_, 
 			if not re.search(r'<div class="data-gusts data--minor [\w]+ weathertable__cell">', lines[linei-1]):
 				raise Exception('problem on line %d' % (linei+1))
 			windgusts = int(re.search(r'>(\d+)<', line).group(1))
-			daytetyme = datetime.datetime.strptime('%s %d %d:00' % (dayte, cur_year, hour), '%b %d %Y %H:%M')
+			daytetyme = datetime.datetime.strptime('%s %d %d:00' % (month_and_day, cur_year, hour), '%b %d %Y %H:%M')
 			if fudge_for_dst and not is_in_dst(daytetyme):
 				daytetyme += datetime.timedelta(hours=1)
 			daytetyme_em = datetime_to_em(daytetyme)
@@ -851,8 +851,10 @@ def backfill_reparse_raw_forecast_in_db(weather_channel_, datestr_):
 		print 'Got %d forecasts.' % len(forecasts)
 		for forecast in forecasts:
 			print forecast
-		if do_any_parsed_forecasts_exist_near_time_retrieved(weather_channel_, t, 1000*60*10):
-			raise Exception('Some parsed forecasts near that time already exist in the database.')
+		num_minutes_tolerance = 10
+		if do_any_parsed_forecasts_exist_near_time_retrieved(weather_channel_, t, 1000*60*num_minutes_tolerance):
+			raise Exception(('Some parsed forecasts near that time (channel: %s, w/ time_retrieved within %d minutes of %s) '
+					+'already exist in the database.') % (weather_channel_, num_minutes_tolerance, em_to_str(t)))
 		insert_parsed_forecasts_into_db(forecasts)
 		print 'Inserted forecasts OK.'
 
