@@ -212,6 +212,20 @@ def parent(node_, n_):
 	return r
 
 # Possible bug - might not parse correctly forecast target times that are in next year 
+# 
+# Note [1]: 
+# WindFinder changed their format at 2017-03-02 07:00.  Before then, these sections of 
+# the web page looked like this:
+# 
+#                    <div class="weathertable__header">
+#                            Thursday, Mar 02
+#                    </div>
+# As of that date/time, they started looking like this:
+#                    <div class="weathertable__header">
+#                      <h4>
+#                          Thursday, Mar 02
+#                      </h4>
+# This code handles both. 
 def windfinder_parse_web_response_by_lines(web_response_str_, weather_channel_, time_retrieved_):
 	"""
 	Return a list of Forecast objects. 
@@ -226,6 +240,9 @@ def windfinder_parse_web_response_by_lines(web_response_str_, weather_channel_, 
 		if '<div class="weathertable__header">' in line:
 			linei += 1
 			line = lines[linei]
+			if '<h4>' in line: # see note [1] 
+				linei += 1
+				line = lines[linei]
 			month_and_day = line.strip()
 			month_and_day = re.sub('^.*? ', '', month_and_day)
 			cur_year = datetime.datetime.today().year # Danger - if backfilling data from a previous year, this will be a bug. 
