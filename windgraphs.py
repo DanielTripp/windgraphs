@@ -261,9 +261,13 @@ def windfinder_parse_web_response_by_lines(web_response_str_, weather_channel_, 
 			daytetyme_em = datetime_to_em(daytetyme)
 			r.append(Forecast(weather_channel_, time_retrieved_, daytetyme_em, windspeed, windgusts))
 		elif '<span class="units-ws">' in line:
-			if '<span class="data-wrap">' not in lines[linei-1] \
-					or '<div class="speed">' not in lines[linei-2] \
-					or not re.search(r'<div class="data-bar data--major weathertable__cell wsmax-level-[\d]+">', lines[linei-3]):
+			# The format of this section seems to differ between the WindFinder 
+			# regular and superforecast.  These things appear on different lines due 
+			# to whitespace formatting.  This is the kind of thing that we wouldn't 
+			# have to worry about if we were parsing the HTML.  But we're not. 
+			prev_three_lines = ''.join(lines[linei-3:linei+1])
+			if not all(x in prev_three_lines for x in ['<span class="data-wrap">', '<div class="speed">', 
+					'data-bar', 'data--major', 'weathertable__cell', 'wsmax-level-']):
 				raise Exception('problem on line %d' % (linei+1))
 			windspeed = int(re.search(r'>(\d+)<', line).group(1))
 		linei += 1
@@ -810,10 +814,10 @@ def print_raw_forecast_from_db(weather_channel_, datestr_):
 		print 'No rows found'
 	else:
 		content = get_raw_forecast_from_db(weather_channel_, t)
+		print content
+		print 'The line above was the last line of the content.'
 		print t
 		print em_to_str(t)
-		print 
-		print content
 
 def get_raw_forecast_from_db(weather_channel_, t_):
 	sqlstr = 'select content from wind_forecasts_raw where time_retrieved = %d' % (t_)
