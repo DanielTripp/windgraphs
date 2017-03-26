@@ -215,17 +215,19 @@ def parent(node_, n_):
 # 
 # Note [1]: 
 # WindFinder changed their format at 2017-03-02 07:00.  Before then, these sections of 
-# the web page looked like this:
-# 
+# the web page looked like this (this is case #1) :
 #                    <div class="weathertable__header">
 #                            Thursday, Mar 02
 #                    </div>
-# As of that date/time, they started looking like this:
+# As of that date/time, they started looking like this (this is case #2) :
 #                    <div class="weathertable__header">
 #                      <h4>
 #                          Thursday, Mar 02
 #                      </h4>
-# This code handles both. 
+# And there's another possibility - it seems to appear w/ the superforecast, eg. 2017-03-25 22:00 (this is case #3):  
+#                     <div class="weathertable__header">
+#                          <h4>Saturday, Mar 25</h4>
+# This code handles all three. 
 def windfinder_parse_web_response_by_lines(web_response_str_, weather_channel_, time_retrieved_):
 	"""
 	Return a list of Forecast objects. 
@@ -240,11 +242,16 @@ def windfinder_parse_web_response_by_lines(web_response_str_, weather_channel_, 
 		if '<div class="weathertable__header">' in line:
 			linei += 1
 			line = lines[linei]
-			if '<h4>' in line: # see note [1] 
-				linei += 1
-				line = lines[linei]
-			month_and_day = line.strip()
-			month_and_day = re.sub('^.*? ', '', month_and_day)
+			# See note [1] 
+			if '<h4>' in line: 
+				if len(line.strip()) == len('<h4>'): # this is case #2 
+					linei += 1
+					hacked_line = lines[linei]
+				else: # this is case #3
+					hacked_line = line.strip()[len('<h4>'):-len('</h4>')]
+			else: # this is note [1] - case #1 
+				hacked_line = line
+			month_and_day = re.sub('^.*? ', '', hacked_line.strip())
 			cur_year = datetime.datetime.today().year # Danger - if backfilling data from a previous year, this will be a bug. 
 		elif '<span class="value">' in line and '<span class="unit">h</span>' in line:
 			if '<div class="data-time weathertable__cell">' not in lines[linei-1] \
