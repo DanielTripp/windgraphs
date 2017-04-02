@@ -2,7 +2,7 @@
 
 import sys
 import windgraphs
-from misc import *
+from dtpythonutil.misc import *
 
 if __name__ == '__main__':
 

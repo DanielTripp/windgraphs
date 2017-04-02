@@ -2,7 +2,7 @@
 
 import sys, datetime, os, json, time, traceback
 import windgraphs
-from misc import *
+from dtpythonutil.misc import *
 
 def make_single_file(target_time_, hours_in_advance_, graph_domain_num_days_):
 	graph_end_date = datetime.date.today()

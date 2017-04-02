@@ -18,7 +18,7 @@ along with ttcskycam.  If not, see <http://www.gnu.org/licenses/>.
 '''
 
 import sys, time, re
-from misc import *
+from dtpythonutil.misc import *
 
 if len(sys.argv) == 1:
 	print now_em()

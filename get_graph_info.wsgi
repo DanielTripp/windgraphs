@@ -4,7 +4,7 @@ import sys, os, os.path, urlparse, json, time, re, cgi, urllib, datetime
 from collections import Sequence
 sys.path.append('.')
 import windgraphs
-from misc import *
+from dtpythonutil.misc import *
 
 # WSGI entry point.
 def application(environ, start_response):

@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 import sys
-from misc import *
+from dtpythonutil.misc import *
 import windgraphs
 
 def main():

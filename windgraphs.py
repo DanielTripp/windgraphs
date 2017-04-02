@@ -10,7 +10,7 @@ import matplotlib.pyplot as plt
 import matplotlib.ticker as ticker
 import pylab
 import numpy as np
-from misc import *
+from dtpythonutil.misc import *
 
 with open('PARSED_WEATHER_CHANNELS.json') as fin:
 	PARSED_WEATHER_CHANNELS = json.load(fin)
