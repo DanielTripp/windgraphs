@@ -1139,7 +1139,14 @@ def get_graph_info(target_time_of_day_, weather_check_num_hours_in_advance_, end
 
 	channel_to_score = get_channel_to_score(observation_runs, forecast_channel_to_runs)
 
-	return {'png': png_content_base64, 'channel_to_score': channel_to_score}
+	return {'png': png_content_base64, 'channel_to_score': channel_to_score, 
+			'channel_to_num_forecasts': get_channel_to_num_forecasts(forecast_channel_to_runs)}
+
+def get_channel_to_num_forecasts(forecast_channel_to_runs_):
+	r = {}
+	for channel, forecast_runs in forecast_channel_to_runs_.iteritems():
+		r[channel] = sum(len(run) for run in forecast_runs)
+	return r
 
 def get_channel_to_score(observation_runs_, forecast_channel_to_runs_):
 	observations = sum(observation_runs_, [])
