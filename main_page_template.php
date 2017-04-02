@@ -80,7 +80,7 @@ function update_img(target_time_, weather_check_num_hours_, end_date_, num_days_
 			var png_content_base64 = data__['png'];
 			var inline_img = "data:image/png;base64,"+png_content_base64;
 			$("#img_graph").attr("src", inline_img);
-			update_img_legend(Object.keys(data__['channel_to_score']));
+			update_img_legend(Object.keys(data__['channel_to_score']).sort());
 			update_p_info(data__['channel_to_score'], data__['channel_to_num_forecasts']);
 			$(window).scrollTop(y_scroll_pos);
 		}

@@ -1,2 +1,12 @@
-{"wf_reg":"Windfinder\nregular", "wf_sup":"Windfinder\nsuperforecast", 
-		"wg_gfs":"WindGURU\nGFS 27 km", "wg_nam":"WindGURU\nNAM 12 km", "wg_hrw":"WindGURU\nHRW 4 km"}
+{
+"wf_reg": "Windfinder\nRegular", 
+"wf_sup": "Windfinder\nSuperforecast", 
+"wg_gfs": "WindGURU\nGFS 27 km", 
+"wg_nam": "WindGURU\nNAM 12 km", 
+"wg_hrw": "WindGURU\nHRW 4 km", 
+"sf_q": "SailFlow\nQuicklook", 
+"sf_nam12": "SailFlow\nNAM 12km",
+"sf_gfs": "SailFlow\nGFS 0.5 Deg",
+"sf_nam3": "SailFlow\nNAM 3km",
+"sf_cmc": "SailFlow\nCMC 0.6 Deg"
+}
