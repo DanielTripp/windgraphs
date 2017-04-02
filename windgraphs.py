@@ -252,7 +252,7 @@ def windfinder_parse_web_response_by_lines(web_response_str_, weather_channel_, 
 			else: # this is note [1] - case #1 
 				hacked_line = line
 			target_month_and_day = re.sub('^.*? ', '', hacked_line.strip())
-			cur_year = datetime.datetime.today().year # Danger - if backfilling data from a previous year, this will be a bug. 
+			target_year = datetime.datetime.today().year # Danger - if backfilling data from a previous year, this will be a bug. 
 		elif '<span class="value">' in line and '<span class="unit">h</span>' in line:
 			if '<div class="data-time weathertable__cell">' not in lines[linei-1] \
 					or '<div class="cell-timespan weathertable__cellgroup weathertable__cellgroup--stacked">' not in lines[linei-2]:
@@ -262,7 +262,7 @@ def windfinder_parse_web_response_by_lines(web_response_str_, weather_channel_, 
 			if not re.search(r'<div class="data-gusts data--minor [\w]+ weathertable__cell">', lines[linei-1]):
 				raise Exception('problem on line %d' % (linei+1))
 			windgusts = int(re.search(r'>(\d+)<', line).group(1))
-			target_datetime = datetime.datetime.strptime('%s %d %d:00' % (target_month_and_day, cur_year, hour), '%b %d %Y %H:%M')
+			target_datetime = datetime.datetime.strptime('%s %d %d:00' % (target_month_and_day, target_year, hour), '%b %d %Y %H:%M')
 			if fudge_for_dst and not is_in_dst(target_datetime):
 				target_datetime += datetime.timedelta(hours=1)
 			target_datetime_em = datetime_to_em(target_datetime)
