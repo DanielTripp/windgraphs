@@ -228,6 +228,16 @@ def parent(node_, n_):
 #                     <div class="weathertable__header">
 #                          <h4>Saturday, Mar 25</h4>
 # This code handles all three. 
+#
+#
+#
+# Note [2]: I'm using this abs() test rather than a "target_time > 
+# time_retrieved" test because of the case where eg. we retrieve a forecast at 
+# 2017-03-01 12:00 and it contains data for 2017-03-01 08:00 (which is 4 hours 
+# in the past).  Even if that data won't show up in our GUI, I would rather not 
+# get target year wrong on it (because a "target_time > time_retrieved"
+# would say that the target year is 2018) and put that wrong data in our 
+# database.
 def windfinder_parse_web_response_by_lines(web_response_str_, weather_channel_, time_retrieved_):
 	"""
 	Return a list of Forecast objects. 
@@ -252,7 +262,6 @@ def windfinder_parse_web_response_by_lines(web_response_str_, weather_channel_, 
 			else: # this is note [1] - case #1 
 				hacked_line = line
 			target_month_and_day = re.sub('^.*? ', '', hacked_line.strip())
-			target_year = datetime.datetime.today().year # Danger - if backfilling data from a previous year, this will be a bug. 
 		elif '<span class="value">' in line and '<span class="unit">h</span>' in line:
 			if '<div class="data-time weathertable__cell">' not in lines[linei-1] \
 					or '<div class="cell-timespan weathertable__cellgroup weathertable__cellgroup--stacked">' not in lines[linei-2]:
@@ -262,8 +271,15 @@ def windfinder_parse_web_response_by_lines(web_response_str_, weather_channel_, 
 			if not re.search(r'<div class="data-gusts data--minor [\w]+ weathertable__cell">', lines[linei-1]):
 				raise Exception('problem on line %d' % (linei+1))
 			windgusts = int(re.search(r'>(\d+)<', line).group(1))
-			target_datetime = datetime.datetime.strptime('%s %d %d:00' % (target_month_and_day, target_year, target_hour), 
-					'%b %d %Y %H:%M')
+			time_retrieved_datetime = em_to_datetime(time_retrieved_)
+			year_retrieved = time_retrieved_datetime.year
+			for target_year in (year_retrieved, year_retrieved+1):
+				target_datetime = datetime.datetime.strptime('%s %d %d:00' % (target_month_and_day, target_year, target_hour), 
+						'%b %d %Y %H:%M')
+				if abs(target_datetime - time_retrieved_datetime) < datetime.timedelta(days=120): # See note [2]
+					break
+			else:
+				raise Exception()
 			if fudge_for_dst and not is_in_dst(target_datetime):
 				target_datetime += datetime.timedelta(hours=1)
 			target_datetime_em = datetime_to_em(target_datetime)
