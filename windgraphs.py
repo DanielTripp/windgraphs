@@ -862,7 +862,7 @@ def get_days(start_date_, num_days_):
 	r = r[::-1]
 	return r
 
-def backfill_reparse_raw_forecast_in_db(weather_channel_, datestr_):
+def backfill_reparse_raw_forecast_in_db(weather_channel_, datestr_, fail_on_dupe_):
 	t = get_nearest_raw_forecast_time_retrieved(weather_channel_, datestr_)
 	if t is None:
 		print 'No rows found'
@@ -881,10 +881,15 @@ def backfill_reparse_raw_forecast_in_db(weather_channel_, datestr_):
 			print forecast
 		num_minutes_tolerance = 10
 		if do_any_parsed_forecasts_exist_near_time_retrieved(weather_channel_, t, 1000*60*num_minutes_tolerance):
-			raise Exception(('Some parsed forecasts near that time (channel: %s, w/ time_retrieved within %d minutes of %s) '
-					+'already exist in the database.') % (weather_channel_, num_minutes_tolerance, em_to_str(t)))
-		insert_parsed_forecasts_into_db(forecasts)
-		print 'Inserted forecasts OK.'
+			msg = ('Some parsed forecasts near that time (channel: %s, w/ time_retrieved within %d minutes of %s) '
+						+'already exist in the database.') % (weather_channel_, num_minutes_tolerance, em_to_str(t))
+			if fail_on_dupe_:
+				raise Exception(msg)
+			else:
+				print msg
+		else:
+			insert_parsed_forecasts_into_db(forecasts)
+			print 'Inserted forecasts OK.'
 
 def do_any_parsed_forecasts_exist_near_time_retrieved(weather_channel_, t_, tolerance_):
 	curs = db_conn().cursor()
