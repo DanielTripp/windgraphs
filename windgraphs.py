@@ -300,36 +300,6 @@ def windfinder_parse_web_response_by_lines(web_response_str_, weather_channel_, 
 def windfinder_parse_web_response(web_response_str_, weather_channel_, time_retrieved_):
 	return windfinder_parse_web_response_by_lines(web_response_str_, weather_channel_, time_retrieved_)
 
-def windfinder_parse_web_response_by_html(web_response_str_, weather_channel_, time_retrieved_):
-	"""
-	Return a list of Forecast objects. 
-	The windfinder regular forecast and superforecast have different URLs but use the same HTML format. 
-	"""
-	# These lines seem to break BeautifulSoup parsing.  If we don't remove them, 
-	# BeautifulSoup will silently omit the entire HTML body. 
-	def keep(line__):
-		return not('<!--[if' in line__ or '<![endif]' in line__)
-	s = '\n'.join(x for x in web_response_str_.splitlines() if keep(x))
-
-	fudge_for_dst = {'wf_reg':True, 'wf_sup':False}[weather_channel_]
-	r = []
-	soup = BeautifulSoup.BeautifulSoup(s)
-	for x in soup.findAll('div', {'class': 'speed'}):
-		for y in x.findAll('span', {'class': 'units-ws'}):
-			windspeed = int(y.string.strip())
-			windgusts = int(parent(y, 4).findAll('div', {'class': re.compile('^data-gusts .*')})[0]\
-					.findAll('span', {'class': 'units-ws'})[0].string)
-			dayte = parent(y, 7).findAll('div', {'class': 'weathertable__header'}, recursive=False)[0].string.strip()
-			dayte = re.sub('^.*? ', '', dayte)
-			hour = int(parent(y, 5).findAll('span', {'class': 'value'})[0].string)
-			cur_year = datetime.datetime.today().year # Danger - if backfilling data from a previous year, this will be a bug. 
-			daytetyme = datetime.datetime.strptime('%s %d %d:00' % (dayte, cur_year, hour), '%b %d %Y %H:%M')
-			if fudge_for_dst and not is_in_dst(daytetyme):
-				daytetyme += datetime.timedelta(hours=1)
-			daytetyme_em = datetime_to_em(daytetyme)
-			r.append(Forecast(weather_channel_, time_retrieved_, daytetyme_em, windspeed, windgusts))
-	return r
-
 def is_in_dst(dt_):
 	assert isinstance(dt_, datetime.datetime)
 	toronto_tzinfo = pytz.timezone('America/Toronto')
