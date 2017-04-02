@@ -4,3 +4,4 @@ syntax: glob
 *.pyo
 static_graph_info
 profiler-output
+tmp
