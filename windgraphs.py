@@ -211,8 +211,6 @@ def parent(node_, n_):
 		r = r.parent
 	return r
 
-# Possible bug - might not parse correctly forecast target times that are in next year 
-# 
 # Note [1]: 
 # WindFinder changed their format at 2017-03-02 07:00.  Before then, these sections of 
 # the web page looked like this (this is case #1) :
