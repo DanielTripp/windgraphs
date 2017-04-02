@@ -1012,7 +1012,10 @@ def copy_parsed_observations_for_testing(src_end_em_, dest_end_em_, time_window_
 		curs.close()
 
 def get_graph_width_inches(num_days_):
-	return {15:14, 30:14, 90:42, 180:84, 365:170}[num_days_]
+	if num_days_ <= 30:
+		return 14
+	else:
+		return get_range_val((30,14), (365,170), num_days_)
 
 def get_graph_info(target_time_of_day_, weather_check_num_hours_in_advance_, end_date_, num_days_):
 	target_time_of_day = datetime.time(target_time_of_day_, 00)
