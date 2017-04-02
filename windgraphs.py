@@ -262,11 +262,11 @@ def windfinder_parse_web_response_by_lines(web_response_str_, weather_channel_, 
 			if not re.search(r'<div class="data-gusts data--minor [\w]+ weathertable__cell">', lines[linei-1]):
 				raise Exception('problem on line %d' % (linei+1))
 			windgusts = int(re.search(r'>(\d+)<', line).group(1))
-			daytetyme = datetime.datetime.strptime('%s %d %d:00' % (month_and_day, cur_year, hour), '%b %d %Y %H:%M')
-			if fudge_for_dst and not is_in_dst(daytetyme):
-				daytetyme += datetime.timedelta(hours=1)
-			daytetyme_em = datetime_to_em(daytetyme)
-			r.append(Forecast(weather_channel_, time_retrieved_, daytetyme_em, windspeed, windgusts))
+			target_datetime = datetime.datetime.strptime('%s %d %d:00' % (month_and_day, cur_year, hour), '%b %d %Y %H:%M')
+			if fudge_for_dst and not is_in_dst(target_datetime):
+				target_datetime += datetime.timedelta(hours=1)
+			target_datetime_em = datetime_to_em(target_datetime)
+			r.append(Forecast(weather_channel_, time_retrieved_, target_datetime_em, windspeed, windgusts))
 		elif '<span class="units-ws">' in line:
 			# The format of this section seems to differ between the WindFinder 
 			# regular and superforecast.  These things appear on different lines due 
