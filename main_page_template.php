@@ -191,7 +191,7 @@ $(document).ready(initialize);
 			<br>
 			<?php
 				if($is_main_page_dynamic) {
-					echo 'Graph end date (yyyymmdd): <br>
+					echo 'Graph end date<br>(In yyyymmdd format, or "today"): <br>
 					<input id="end_date_field" type="text" value="today"></input>
 					<br>
 					<br>';
