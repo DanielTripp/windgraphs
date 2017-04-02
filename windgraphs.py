@@ -18,6 +18,8 @@ with open('WEATHER_CHANNEL_TO_COLOR.json') as fin:
 	WEATHER_CHANNEL_TO_COLOR = json.load(fin)
 with open('WEATHER_CHANNEL_TO_LONG_MULTILINE_NAME.json') as fin:
 	WEATHER_CHANNEL_TO_LONG_MULTILINE_NAME = json.load(fin)
+with open('OBSERVATION_COLOR.json') as fin:
+	OBSERVATION_COLOR = json.load(fin)
 
 assert set(WEATHER_CHANNEL_TO_COLOR.keys()) == set(PARSED_WEATHER_CHANNELS) \
 		== set(WEATHER_CHANNEL_TO_LONG_MULTILINE_NAME.keys())
@@ -1050,10 +1052,10 @@ def get_graph_info(target_time_of_day_, weather_check_num_hours_in_advance_, end
 		return [e[1] for e in run__]
 
 	# Draw "actual wind" lines and dots: 
-	observation_color = 'black'
+	observation_color = OBSERVATION_COLOR
 	for run in observation_runs:
-		plt.plot(xvals(run), yvals(run), color=observation_color, marker='o', markersize=7, 
-				linestyle='solid', linewidth=1)
+		plt.plot(xvals(run), yvals(run), markeredgecolor=observation_color, color=observation_color, marker='o', 
+				markersize=7, linestyle='solid', linewidth=1)
 
 	# Draw forecast channel lines and dots: 
 	for channel in forecast_channel_to_runs.keys():
@@ -1064,9 +1066,11 @@ def get_graph_info(target_time_of_day_, weather_check_num_hours_in_advance_, end
 			plt.plot(xs, ys, color=color, marker='o', markeredgecolor=color, markersize=7,
 					linestyle='solid', linewidth=1)
 
-	# Kludge.  Making room for our weather channel names. 
-	xlim_margin = {15:4, 30:6, 90:8, 180:8, 365:8}[num_days_]*24*60*60*1000
-	plt.xlim(em_to_datetime(target_times[0]-xlim_margin), em_to_datetime(target_times[-1]+1000*60*60*24))
+	# Increasing the amount of domain shown, because otherwise the first and last 
+	# data points are of the left and right borders of the image, and that looks 
+	# bad. 
+	x_margin = 1000*60*60*24
+	plt.xlim(em_to_datetime(target_times[0]-x_margin), em_to_datetime(target_times[-1]+x_margin))
 
 	# Draw date labels on X-axis:
 	fig.autofmt_xdate()
@@ -1089,28 +1093,6 @@ def get_graph_info(target_time_of_day_, weather_check_num_hours_in_advance_, end
 	for y in range(0, max_yval+5, 5):
 		plt.axhline(y, color=(0.5,0.5,0.5), alpha=0.5, linestyle='-')
 	plt.yticks(np.arange(0, max_yval+5, 5)) # Do this /after/ the axhline() calls or else the min value might not be respected. 
-
-	# Draw text labelling each forecast channel and "Actual wind":
-	series_to_first_run = {}
-	series_to_first_run['actual'] = observation_runs[0]
-	for forecast_channel, runs in forecast_channel_to_runs.iteritems():
-		if runs:
-			series_to_first_run[forecast_channel] = runs[0]
-	series_to_color = WEATHER_CHANNEL_TO_COLOR.copy()
-	series_to_color['actual'] = observation_color
-	series_to_name = WEATHER_CHANNEL_TO_LONG_MULTILINE_NAME.copy()
-	series_to_name['actual'] = 'Actual wind'
-	serieses_in_y_order = sorted(series_to_first_run.keys(), key=lambda s: series_to_first_run[s][0][1])
-	for seriesi, series in enumerate(serieses_in_y_order):
-		color = series_to_color[series]
-		texty_fraction = (seriesi+1)/float(len(series_to_first_run)+1)
-		texty = texty_fraction*max_yval
-		first_run = series_to_first_run[series]
-		text = series_to_name[series]
-		label = ax.annotate(text, xy=first_run[0], xytext=(min_xval - datetime.timedelta(milliseconds=xlim_margin*0.9), texty),  
-				arrowprops=dict(arrowstyle='-', linestyle='dotted', linewidth=2, color=color), 
-				horizontalalignment='left', verticalalignment='center', weight=('bold' if series == 'actual' else 'normal'), 
-				color=color, fontsize=10, family='serif')
 
 	plt.ylabel('Average wind (knots)')
 

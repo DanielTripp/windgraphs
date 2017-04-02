@@ -12,11 +12,12 @@
 
 var WEATHER_CHANNEL_TO_LONG_MULTILINE_NAME = <?php readfile('WEATHER_CHANNEL_TO_LONG_MULTILINE_NAME.json');?>
 var WEATHER_CHANNEL_TO_COLOR = <?php readfile('WEATHER_CHANNEL_TO_COLOR.json');?>
+var OBSERVATION_COLOR = <?php readfile('OBSERVATION_COLOR.json');?>
 
 var WEATHER_CHANNEL_TO_SINGLE_LINE_NAME = {};
 for(var channel in WEATHER_CHANNEL_TO_LONG_MULTILINE_NAME) {
 	var multiline_name = WEATHER_CHANNEL_TO_LONG_MULTILINE_NAME[channel];
-	var single_line_name = multiline_name.replace('\n', ' ');
+	var single_line_name = multiline_name.replace(/\n/g, ' ').replace(/ /g, '&nbsp;');
 	WEATHER_CHANNEL_TO_SINGLE_LINE_NAME[channel] = single_line_name;
 }
 
@@ -79,10 +80,24 @@ function update_img(target_time_, weather_check_num_hours_, end_date_, num_days_
 			var png_content_base64 = data__['png'];
 			var inline_img = "data:image/png;base64,"+png_content_base64;
 			$("#img_graph").attr("src", inline_img);
+			update_img_legend(Object.keys(data__['channel_to_score']));
 			update_p_info(data__['channel_to_score'], data__['channel_to_num_forecasts']);
 			$(window).scrollTop(y_scroll_pos);
 		}
 	});
+}
+
+function update_img_legend(channels_) {
+	var spaces = '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ';
+	var html = '<font size="+1">';
+	html += sprintf('<font color="%s">&#9679;&nbsp;Actual&nbsp;wind</font>%s', OBSERVATION_COLOR, spaces);
+	channels_.forEach(function(channel) {
+		var channel_long_name = WEATHER_CHANNEL_TO_SINGLE_LINE_NAME[channel];
+		var channel_color = WEATHER_CHANNEL_TO_COLOR[channel];
+		html += sprintf('<font color="%s">&#9679;&nbsp;%s</font>%s', channel_color, channel_long_name, spaces);
+	});
+	html += "</font>";
+	$("#p_img_legend").html(html);
 }
 
 function update_p_info_with_error(text_status_, error_thrown_) {
@@ -138,7 +153,7 @@ $(document).ready(initialize);
 		<h2>Wind forecasts vs. actual wind - Toronto Islands</h2>
 		<br>
 		<div>
-			<div style="float: left;">
+			<div style="float: left; width: 15%">
 			What time of day do you sail? <br>
 			<select id="target_time_list" required>
 				<?php 
@@ -208,8 +223,11 @@ $(document).ready(initialize);
 			<div style="float: right;">
 				<img src="blank_1x629.gif">
 			</div>
-			<div style="float: right; overflow:scroll; width:1200px;">
+			<div style="float: right; overflow:scroll; width:80%;">
 				<img id="img_graph" src="">
+			</div>
+			<div style="float: right; width:80%;">
+				<p id="p_img_legend"/>
 			</div>
 			<br style="clear: both;" />
 		</div>
