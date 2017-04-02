@@ -112,7 +112,7 @@ function update_p_info(channel_to_score_, channel_to_num_forecasts_) {
 		var channel_long_name = WEATHER_CHANNEL_TO_SINGLE_LINE_NAME[channel];
 		var color = WEATHER_CHANNEL_TO_COLOR[channel];
 		html += sprintf('<tr><td><font color="%s">%s</td><td style="text-align:center">%s</td><td style="text-align:center">%s</td></tr>', 
-				color, channel_long_name, score, num_forecasts);
+				color, channel_long_name, score==null ? '-' : score, num_forecasts);
 	});
 	html += '</table>';
 	$("#p_info").html(html);
