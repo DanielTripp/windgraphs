@@ -141,6 +141,8 @@ def db_conn():
 
 class Forecast(object):
 
+	# param time_retrieved_ is in epoch millis 
+	# param time_retrieved_ is in epoch millis 
 	def __init__(self, weather_channel_, time_retrieved_, target_time_, base_wind_, gust_wind_):
 		assert isinstance(weather_channel_, str)
 		assert all(isinstance(x, long) for x in [time_retrieved_, target_time_])
@@ -456,6 +458,9 @@ def parse_envcan_observation_web_response(web_response_):
 def kmph_to_knots(kmph_):
 	return kmph_*0.539957
 
+def mph_to_knots(mph_):
+	return mph_*0.868976
+
 @lock
 @trans
 def insert_raw_forecast_into_db(weather_channel_, web_response_str_, time_retrieved_):
@@ -676,18 +681,63 @@ def get_envcan_observations_and_insert_into_db_single_month(date_, dry_run_, pri
 			print '%s total parsed observations: %d.  Num successfully inserted: %d' % (monthstr, len(parsed_observations), num_inserts)
 
 def get_all_forecasts_and_insert_into_db():
-	try:
-		windfinderregular_get_forecast_and_insert_into_db()
-	except:
-		traceback.print_exc()
-	try:
-		windfindersuper_get_forecast_and_insert_into_db()
-	except:
-		traceback.print_exc()
-	try:
-		windguru_get_forecast_and_insert_into_db()
-	except:
-		traceback.print_exc()
+	for func in [windfinderregular_get_forecast_and_insert_into_db, windfindersuper_get_forecast_and_insert_into_db, 
+			windguru_get_forecast_and_insert_into_db, sailflow_quicklook_get_forecast_and_insert_into_db, 
+			sailflow_nam12_get_forecast_and_insert_into_db, sailflow_gfs_get_forecast_and_insert_into_db, 
+			sailflow_nam3_get_forecast_and_insert_into_db, sailflow_cmc_get_forecast_and_insert_into_db]:
+		try:
+			func()
+		except:
+			traceback.print_exc()
+
+def sailflow_quicklook_get_forecast_and_insert_into_db():
+	sailflow_get_forecast_and_insert_into_db('sf_q', True)
+
+def sailflow_nam12_get_forecast_and_insert_into_db():
+	sailflow_get_forecast_and_insert_into_db('sf_nam12', True)
+
+def sailflow_gfs_get_forecast_and_insert_into_db():
+	sailflow_get_forecast_and_insert_into_db('sf_gfs', True)
+
+def sailflow_nam3_get_forecast_and_insert_into_db():
+	sailflow_get_forecast_and_insert_into_db('sf_nam3', True)
+
+def sailflow_cmc_get_forecast_and_insert_into_db():
+	sailflow_get_forecast_and_insert_into_db('sf_cmc', False)
+
+def sailflow_get_forecast_and_insert_into_db(channel_, parse_gusts_):
+	web_response = sailflow_get_web_response(channel_)
+	time_retrieved_em = now_em()
+	insert_raw_forecast_into_db(channel_, web_response, time_retrieved_em)
+	forecasts = sailflow_parse_web_response(web_response, channel_, time_retrieved_em, parse_gusts_)
+	insert_parsed_forecasts_into_db(forecasts)
+
+# CMC doesn't have gust info, either in the JSON in the GUI.  
+def sailflow_parse_web_response(web_response_, channel_, time_retrieved_em_, parse_gusts_):
+	data = json.loads(web_response_)
+	parsed_forecasts = []
+	if data['units_wind'] != 'mph':
+		raise Exception()
+	for raw_forecast in data['model_data']:
+		target_time = raw_forecast['model_time_local']
+		target_time = str_to_em(target_time[:16])
+		base_wind_mph = raw_forecast['wind_speed']
+		base_wind_knots = int(mph_to_knots(base_wind_mph))
+		if parse_gusts_:
+			gusts_mph = raw_forecast['wind_gust']
+		else:
+			gusts_mph = base_wind_mph
+		gusts_knots = int(mph_to_knots(gusts_mph))
+		parsed_forecasts.append(Forecast(channel_, time_retrieved_em_, target_time, base_wind_knots, gusts_knots))
+	return parsed_forecasts
+
+# This function returns data in miles per hour.
+def sailflow_get_web_response(model_):
+	model_url_id = {'sf_q': '-1', 'sf_nam12': '1', 'sf_gfs': '2', 'sf_nam3': '161', 'sf_cmc': '78'}[model_]
+	url_template = 'http://api.weatherflow.com/wxengine/rest/model/getModelDataBySpot?callback=jQuery17206727484519083629_%s&units_wind=mph&units_temp=f&units_distance=mi&spot_id=826&model_id=%s&wf_token=62b16fa1f351b2ab3fd99ccd1d0dd11e&_=%s'
+	url = url_template % (now_em(), model_url_id, now_em())
+	r = urllib2.urlopen(url).read()
+	return r
 
 def get_forecast_near_time_retrieveds(weather_channel_, time_retrieved_approx_, target_time_, sooner_aot_later_, maxrows_, time_span_):
 	assert isinstance(time_retrieved_approx_, long)
