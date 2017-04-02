@@ -1042,7 +1042,7 @@ def copy_parsed_observations_for_testing(src_end_em_, dest_end_em_, time_window_
 		curs.close()
 
 def get_graph_width_inches(num_days_):
-	return {15:14, 30:14, 90:42, 365:170}[num_days_]
+	return {15:14, 30:14, 90:42, 180:84, 365:170}[num_days_]
 
 def get_graph_info(target_time_of_day_, weather_check_num_hours_in_advance_, end_date_, num_days_):
 	target_time_of_day = datetime.time(target_time_of_day_, 00)
@@ -1097,7 +1097,7 @@ def get_graph_info(target_time_of_day_, weather_check_num_hours_in_advance_, end
 					linestyle='solid', linewidth=1)
 
 	# Kludge.  Making room for our weather channel names. 
-	xlim_margin = {15:4, 30:6, 90:8, 365:8}[num_days_]*24*60*60*1000
+	xlim_margin = {15:4, 30:6, 90:8, 180:8, 365:8}[num_days_]*24*60*60*1000
 	plt.xlim(em_to_datetime(target_times[0]-xlim_margin), em_to_datetime(target_times[-1]+1000*60*60*24))
 
 	# Draw date labels on X-axis:
