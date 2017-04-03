@@ -10,9 +10,9 @@
 	<script src="sprintf.min.js"></script>
 	<script type="text/javascript">
 
-var WEATHER_CHANNEL_TO_LONG_MULTILINE_NAME = <?php readfile('WEATHER_CHANNEL_TO_LONG_MULTILINE_NAME.json');?>
-var WEATHER_CHANNEL_TO_COLOR = <?php readfile('WEATHER_CHANNEL_TO_COLOR.json');?>
-var OBSERVATION_COLOR = <?php readfile('OBSERVATION_COLOR.json');?>
+var WEATHER_CHANNEL_TO_LONG_MULTILINE_NAME = <?php readfile('WEATHER_CHANNEL_TO_LONG_MULTILINE_NAME.json');?>;
+var WEATHER_CHANNEL_TO_COLOR = <?php readfile('WEATHER_CHANNEL_TO_COLOR.json');?>;
+var OBSERVATION_COLOR = <?php readfile('OBSERVATION_COLOR.json');?>;
 
 var WEATHER_CHANNEL_TO_SINGLE_LINE_NAME = {};
 for(var channel in WEATHER_CHANNEL_TO_LONG_MULTILINE_NAME) {
