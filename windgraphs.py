@@ -12,6 +12,13 @@ import pylab
 import numpy as np
 from dtpythonutil.misc import *
 
+# Methodology notes: 
+# meteoblue doesn't say 'average wind' or 'gust' anywhere - it has a range eg. "19-35".  It's 
+# unclear if that first number is an average or a minimum.  We're taking it to 
+# be an average - which I think is the same as all other forecast channels see 
+# things (evidence?) and I'm a little more sure is how the environment canada 
+# observations see things. 
+
 with open('PARSED_WEATHER_CHANNELS.json') as fin:
 	PARSED_WEATHER_CHANNELS = json.load(fin)
 with open('WEATHER_CHANNEL_TO_COLOR.json') as fin:
@@ -142,7 +149,7 @@ def db_conn():
 class Forecast(object):
 
 	# param time_retrieved_ is in epoch millis 
-	# param time_retrieved_ is in epoch millis 
+	# param target_time_ is in epoch millis 
 	def __init__(self, weather_channel_, time_retrieved_, target_time_, base_wind_, gust_wind_):
 		assert isinstance(weather_channel_, str)
 		assert all(isinstance(x, long) for x in [time_retrieved_, target_time_])
@@ -737,6 +744,52 @@ def sailflow_get_web_response(model_):
 	url_template = 'http://api.weatherflow.com/wxengine/rest/model/getModelDataBySpot?callback=jQuery17206727484519083629_%s&units_wind=mph&units_temp=f&units_distance=mi&spot_id=826&model_id=%s&wf_token=62b16fa1f351b2ab3fd99ccd1d0dd11e&_=%s'
 	url = url_template % (now_em(), model_url_id, now_em())
 	r = urllib2.urlopen(url).read()
+	return r
+
+def meteoblue_get_web_response(day_):
+	assert 1 <= day_ <= 6
+	if 1: # tdr 
+		with open('/tmp/wind/mb') as fin:
+			s = fin.read()
+		return s
+	if day_ == 1:
+		url = 'https://www.meteoblue.com/en/weather/forecast/week/billy-bishop-toronto-city-airport_canada_6301483'
+	else:
+		url = 'https://www.meteoblue.com/en/weather/forecast/week/billy-bishop-toronto-city-airport_canada_6301483?day=%d' % day_
+	r = urllib2.urlopen(url).read()
+	return r
+
+def meteoblue_parse_web_response(web_response_):
+	soup = BeautifulSoup.BeautifulSoup(web_response_)
+	date_str = soup.find('table', {'class': 'picto'}).find('tbody').find('tr', {'class': 'times'})\
+			.find('th').find('time')['datetime']
+	r = []
+	winds_kmph = []
+	for e in soup.findAll('tr', {'class': 'windspeeds', 'title': 'Wind speed (km/h)'}):
+		for f in e.findAll('td'):
+			for g in f.findAll('div', {'class': 'cell'}):
+				wind_speed_range_kmph = g.contents[0]
+				wind_speed_lo_kmph = int(wind_speed_range_kmph.split('-')[0])
+				winds_kmph.append(wind_speed_lo_kmph)
+	hours_of_day = []
+	for e in soup.find('tr', {'class': 'times'}).findAll('div', {'class': 'cell time'}):
+		f = e.find('time', recursive=False)
+		hour_of_day = int(f.contents[0].strip())
+		hours_of_day.append(hour_of_day)
+	if len(winds_kmph) != len(hours_of_day):
+		raise Exception('Got %d winds and %d hours' % (len(winds_kmph), len(hours_of_day)))
+	for hour_of_day, wind_kmph in zip(hours_of_day, winds_kmph):
+		datetime_str = '%s %02d:00' % (date_str, hour_of_day)
+		target_datetime = datetime.datetime.strptime(datetime_str, '%Y-%m-%d %H:%M')
+		target_time_em = datetime_to_em(target_datetime)
+		time_retrieved = now_em() # TODO: fix 
+		wind_knots = int(kmph_to_knots(wind_kmph))
+		forecast = Forecast('mb', time_retrieved, target_time_em, wind_knots, -1)
+		r.append(forecast)
+	return r
+
+def meteoblue_get_from_web_and_parse(day_):
+	r = meteoblue_parse_web_response(meteoblue_get_web_response(day_))
 	return r
 
 def get_forecast_near_time_retrieveds(weather_channel_, time_retrieved_approx_, target_time_, sooner_aot_later_, maxrows_, time_span_):
