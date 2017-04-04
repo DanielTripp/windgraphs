@@ -112,6 +112,8 @@ function update_p_info(channel_to_score_, channel_to_num_forecasts_) {
 			var a_score = channel_to_score_[a__], b_score = channel_to_score_[b__];
 			if(a_score == b_score) {
 				return 0;
+			} else if(a_score == null ^ b_score == null) {
+				return (a_score == null ? 1 : -1);
 			} else if(a_score < b_score) {
 				return -1;
 			} else {
