@@ -39,6 +39,9 @@ DEV = os.path.exists('DEV')
 DEV_READ_FROM_FILES = DEV and 0
 DEV_WRITE_TO_FILES = DEV and 0
 
+METEO_BLUE_DAYS = tuple(range(1, 7))
+METEO_BLUE_RAW_CHANNEL_PREFIX = 'mb-day'
+
 g_db_conn = None
 g_lock = threading.RLock()
 
@@ -572,6 +575,8 @@ def print_reparsed_forecasts_from_db(weather_channel_, datestr_):
 			forecasts = windguru_parse_web_response(web_response, t)
 		elif weather_channel_ in ('wf_reg', 'wf_sup'):
 			forecasts = windfinder_parse_web_response(web_response, weather_channel_, t)
+		elif weather_channel_.startswith(METEO_BLUE_RAW_CHANNEL_PREFIX):
+			forecasts = meteoblue_parse_web_response(web_response, t)
 		else:
 			raise Exception()
 		for forecast in forecasts:
@@ -691,7 +696,8 @@ def get_all_forecasts_and_insert_into_db():
 	for func in [windfinderregular_get_forecast_and_insert_into_db, windfindersuper_get_forecast_and_insert_into_db, 
 			windguru_get_forecast_and_insert_into_db, sailflow_quicklook_get_forecast_and_insert_into_db, 
 			sailflow_nam12_get_forecast_and_insert_into_db, sailflow_gfs_get_forecast_and_insert_into_db, 
-			sailflow_nam3_get_forecast_and_insert_into_db, sailflow_cmc_get_forecast_and_insert_into_db]:
+			sailflow_nam3_get_forecast_and_insert_into_db, sailflow_cmc_get_forecast_and_insert_into_db, 
+			meteoblue_get_forecast_and_insert_into_db]:
 		try:
 			func()
 		except:
@@ -747,11 +753,7 @@ def sailflow_get_web_response(model_):
 	return r
 
 def meteoblue_get_web_response(day_):
-	assert 1 <= day_ <= 6
-	if 1: # tdr 
-		with open('/tmp/wind/mb') as fin:
-			s = fin.read()
-		return s
+	assert day_ in METEO_BLUE_DAYS
 	if day_ == 1:
 		url = 'https://www.meteoblue.com/en/weather/forecast/week/billy-bishop-toronto-city-airport_canada_6301483'
 	else:
@@ -759,7 +761,7 @@ def meteoblue_get_web_response(day_):
 	r = urllib2.urlopen(url).read()
 	return r
 
-def meteoblue_parse_web_response(web_response_):
+def meteoblue_parse_web_response(web_response_, time_retrieved_em_):
 	soup = BeautifulSoup.BeautifulSoup(web_response_)
 	date_str = soup.find('table', {'class': 'picto'}).find('tbody').find('tr', {'class': 'times'})\
 			.find('th').find('time')['datetime']
@@ -772,25 +774,39 @@ def meteoblue_parse_web_response(web_response_):
 				wind_speed_lo_kmph = int(wind_speed_range_kmph.split('-')[0])
 				winds_kmph.append(wind_speed_lo_kmph)
 	hours_of_day = []
-	for e in soup.find('tr', {'class': 'times'}).findAll('div', {'class': 'cell time'}):
+	for e in soup.find('tr', {'class': 'times'}).findAll('div', {'class': re.compile('cell time.*')}):
 		f = e.find('time', recursive=False)
 		hour_of_day = int(f.contents[0].strip())
 		hours_of_day.append(hour_of_day)
 	if len(winds_kmph) != len(hours_of_day):
-		raise Exception('Got %d winds and %d hours' % (len(winds_kmph), len(hours_of_day)))
+		raise Exception('Got %d winds and %d hours (%s / %s)' % (len(winds_kmph), len(hours_of_day), winds_kmph, hours_of_day))
 	for hour_of_day, wind_kmph in zip(hours_of_day, winds_kmph):
 		datetime_str = '%s %02d:00' % (date_str, hour_of_day)
 		target_datetime = datetime.datetime.strptime(datetime_str, '%Y-%m-%d %H:%M')
 		target_time_em = datetime_to_em(target_datetime)
-		time_retrieved = now_em() # TODO: fix 
 		wind_knots = int(kmph_to_knots(wind_kmph))
-		forecast = Forecast('mb', time_retrieved, target_time_em, wind_knots, -1)
+		forecast = Forecast('mb', time_retrieved_em_, target_time_em, wind_knots, -1)
 		r.append(forecast)
 	return r
 
 def meteoblue_get_from_web_and_parse(day_):
 	r = meteoblue_parse_web_response(meteoblue_get_web_response(day_))
 	return r
+
+def meteoblue_get_forecast_and_insert_into_db():
+	for day in METEO_BLUE_DAYS:
+		channel = '%s%d' % (METEO_BLUE_RAW_CHANNEL_PREFIX, day)
+		try:
+			cur_time_em = now_em()
+			last_raw_forecast_time_retrieved = get_raw_forecast_near_time_retrieved(channel, cur_time_em, False)
+			if last_raw_forecast_time_retrieved == None or cur_time_em - last_raw_forecast_time_retrieved > 1000*60*10:
+				web_response = meteoblue_get_web_response(day)
+				insert_raw_forecast_into_db(channel, web_response, cur_time_em)
+				forecasts = meteoblue_parse_web_response(web_response, cur_time_em)
+				insert_parsed_forecasts_into_db(forecasts)
+		except:
+			print >> sys.stderr, 'Got exception during %s' % channel 
+			traceback.print_exc()
 
 def get_forecast_near_time_retrieveds(weather_channel_, time_retrieved_approx_, target_time_, sooner_aot_later_, maxrows_, time_span_):
 	assert isinstance(time_retrieved_approx_, long)
