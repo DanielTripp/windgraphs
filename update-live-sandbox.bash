@@ -5,7 +5,7 @@ set -eu -o pipefail
 cd "$(dirname "$0")"
 
 if [ "$(whoami)" == 'root' ] ; then 
-	echo 'Failed.  You must be root.'
+	echo 'Failed.  You must not be root.'
 	exit 1
 fi
 
