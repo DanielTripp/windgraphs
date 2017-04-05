@@ -9,7 +9,7 @@ if [ "$(whoami)" == 'root' ] ; then
 	exit 1
 fi
 
-if [ "$(pwd)" == '/var/www-danieltripp.ca/windgraphs' ] ; then 
+if [ "$(pwd)" != '/var/www-danieltripp.ca/windgraphs' ] ; then 
 	echo 'Failed.  You are not in the live directory.'
 	exit 1
 fi
