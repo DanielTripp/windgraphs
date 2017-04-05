@@ -8,5 +8,6 @@
 "sf_nam12": "SailFlow\nNAM 12km",
 "sf_gfs": "SailFlow\nGFS 0.5 Deg",
 "sf_nam3": "SailFlow\nNAM 3km",
-"sf_cmc": "SailFlow\nCMC 0.6 Deg"
+"sf_cmc": "SailFlow\nCMC 0.6 Deg",
+"mb": "Meteoblue"
 }
