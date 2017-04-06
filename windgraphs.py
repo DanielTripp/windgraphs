@@ -983,10 +983,12 @@ def backfill_reparse_raw_forecast_in_db(raw_weather_channel_, datestr_, fail_on_
 			forecasts = windguru_parse_web_response(web_response, t)
 		elif raw_weather_channel_ in ('wf_reg', 'wf_sup'):
 			forecasts = windfinder_parse_web_response(web_response, raw_weather_channel_, t)
+		elif raw_weather_channel_ in ('sf_q', 'sf_nam12', 'sf_gfs', 'sf_nam3', 'sf_cmc'):
+			forecasts = sailflow_parse_web_response(web_response, raw_weather_channel_, t)
 		elif raw_weather_channel_.startswith(METEO_BLUE_RAW_CHANNEL_PREFIX):
 			forecasts = meteoblue_parse_web_response(web_response, t)
 		else:
-			raise Exception('unknown raw weather channel')
+			raise Exception('unknown raw weather channel "%s"' % raw_weather_channel_)
 		print 'Got %d forecasts.' % len(forecasts)
 		for forecast in forecasts:
 			print forecast
