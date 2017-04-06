@@ -968,27 +968,30 @@ def get_days(start_date_, num_days_):
 	r = r[::-1]
 	return r
 
-def backfill_reparse_raw_forecast_in_db(weather_channel_, datestr_, fail_on_dupe_):
-	t = get_nearest_raw_forecast_time_retrieved(weather_channel_, datestr_)
+def backfill_reparse_raw_forecast_in_db(raw_weather_channel_, datestr_, fail_on_dupe_):
+	t = get_nearest_raw_forecast_time_retrieved(raw_weather_channel_, datestr_)
 	if t is None:
 		print 'No rows found'
 	else:
 		print t
 		print em_to_str(t)
-		web_response = get_raw_forecast_from_db(weather_channel_, t)
-		if weather_channel_ == 'wg':
+		web_response = get_raw_forecast_from_db(raw_weather_channel_, t)
+		if raw_weather_channel_ == 'wg':
 			forecasts = windguru_parse_web_response(web_response, t)
-		elif weather_channel_ in ('wf_reg', 'wf_sup'):
-			forecasts = windfinder_parse_web_response(web_response, weather_channel_, t)
+		elif raw_weather_channel_ in ('wf_reg', 'wf_sup'):
+			forecasts = windfinder_parse_web_response(web_response, raw_weather_channel_, t)
+		elif raw_weather_channel_.startswith(METEO_BLUE_RAW_CHANNEL_PREFIX):
+			forecasts = meteoblue_parse_web_response(web_response, t)
 		else:
-			raise Exception('unknown weather channel')
+			raise Exception('unknown raw weather channel')
 		print 'Got %d forecasts.' % len(forecasts)
 		for forecast in forecasts:
 			print forecast
 		num_minutes_tolerance = 10
-		if do_any_parsed_forecasts_exist_near_time_retrieved(weather_channel_, t, 1000*60*num_minutes_tolerance):
+		parsed_weather_channels = set([forecast.weather_channel for forecast in forecasts])
+		if do_any_parsed_forecasts_exist_near_time_retrieved(parsed_weather_channels, t, 1000*60*num_minutes_tolerance):
 			msg = ('Some parsed forecasts near that time (channel: %s, w/ time_retrieved within %d minutes of %s) '
-						+'already exist in the database.') % (weather_channel_, num_minutes_tolerance, em_to_str(t))
+						+'already exist in the database.') % (raw_weather_channel_, num_minutes_tolerance, em_to_str(t))
 			if fail_on_dupe_:
 				raise Exception(msg)
 			else:
@@ -997,12 +1000,12 @@ def backfill_reparse_raw_forecast_in_db(weather_channel_, datestr_, fail_on_dupe
 			insert_parsed_forecasts_into_db(forecasts)
 			print 'Inserted forecasts OK.'
 
-def do_any_parsed_forecasts_exist_near_time_retrieved(weather_channel_, t_, tolerance_):
+def do_any_parsed_forecasts_exist_near_time_retrieved(parsed_weather_channels_, t_, tolerance_):
 	curs = db_conn().cursor()
 	try:
-		sqlstr = '''select time_retrieved from wind_forecasts_parsed where time_retrieved between %s and %s and 
-				weather_channel like %s limit 1'''
-		cols = [t_ - tolerance_, t_ + tolerance_, weather_channel_+'%']
+		sqlstr = '''select time_retrieved from wind_forecasts_parsed where time_retrieved between %%s and %%s and 
+				weather_channel in (%s) limit 1''' % ','.join("'%s'" % x for x in parsed_weather_channels_)
+		cols = [t_ - tolerance_, t_ + tolerance_]
 		curs.execute(sqlstr, cols)
 		r = False
 		for row in curs:
