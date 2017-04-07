@@ -811,11 +811,11 @@ def meteoblue_get_forecast_and_insert_into_db():
 			print >> sys.stderr, 'Got exception during %s' % channel 
 			traceback.print_exc()
 
-def get_forecast_near_time_retrieveds(weather_channel_, time_retrieved_approx_, target_time_, sooner_aot_later_, maxrows_, time_span_):
+def get_forecast_near_time_retrieveds(weather_channel_, time_retrieved_approx_, target_time_, get_time_greater_than_, maxrows_, time_span_):
 	assert isinstance(time_retrieved_approx_, long)
 	assert isinstance(target_time_, long)
-	sign = ('>=' if sooner_aot_later_ else '<=')
-	order = ('asc' if sooner_aot_later_ else 'desc')
+	sign = ('>=' if get_time_greater_than_ else '<=')
+	order = ('asc' if get_time_greater_than_ else 'desc')
 	sqlstr = '''select time_retrieved from wind_forecasts_parsed where target_time = %d and time_retrieved %s %d 
 			and weather_channel = '%s' order by time_retrieved %s limit %d''' % \
 			(target_time_, sign, time_retrieved_approx_, weather_channel_, order, maxrows_)
@@ -847,10 +847,10 @@ def get_forecast_nearest_time_retrieveds(weather_channel_, time_retrieved_em_, t
 	r = list(reversed(less_thans)) + greater_thans
 	return r
 
-def get_near_time_retrieveds(table_, channel_, time_em_, sooner_aot_later_, maxrows_, time_span_):
+def get_near_time_retrieveds(table_, channel_, time_em_, get_time_greater_than_, maxrows_, time_span_):
 	assert table_.startswith('wind_observations_')
-	sign = ('>=' if sooner_aot_later_ else '<=')
-	order = ('asc' if sooner_aot_later_ else 'desc')
+	sign = ('>=' if get_time_greater_than_ else '<=')
+	order = ('asc' if get_time_greater_than_ else 'desc')
 	sqlstr = '''select time_retrieved from %s  
 			where channel = '%s' and time_retrieved %s %d order by time_retrieved %s limit %d''' \
 			% (table_, channel_, sign, time_em_, order, maxrows_)
@@ -866,8 +866,8 @@ def get_near_time_retrieveds(table_, channel_, time_em_, sooner_aot_later_, maxr
 	finally:
 		curs.close()
 
-def get_near_time_retrieved(table_, channel_, time_em_, sooner_aot_later_):
-	r = get_near_time_retrieveds(table_, channel_, time_em_, sooner_aot_later_, 1, None)
+def get_near_time_retrieved(table_, channel_, time_em_, get_time_greater_than_):
+	r = get_near_time_retrieveds(table_, channel_, time_em_, get_time_greater_than_, 1, None)
 	assert len(r) <= 1
 	return (None if len(r) == 0 else r[0])
 
@@ -877,9 +877,9 @@ def get_nearest_raw_forecast_time_retrieved(weather_channel_, datestr_):
 	gt_time = get_raw_forecast_near_time_retrieved(weather_channel_, t,   True)
 	return vote_on_nearest_time(t, lt_time, gt_time)
 
-def get_raw_forecast_near_time_retrieved(weather_channel_, t_, sooner_aot_later_):
-	sign = ('>=' if sooner_aot_later_ else '<=')
-	order = ('asc' if sooner_aot_later_ else 'desc')
+def get_raw_forecast_near_time_retrieved(weather_channel_, t_, get_time_greater_than_):
+	sign = ('>=' if get_time_greater_than_ else '<=')
+	order = ('asc' if get_time_greater_than_ else 'desc')
 	sqlstr = '''select time_retrieved from wind_forecasts_raw 
 			where weather_channel = %%s and time_retrieved %s %%s order by time_retrieved %s limit 1''' % (sign, order)
 	curs = db_conn().cursor()
