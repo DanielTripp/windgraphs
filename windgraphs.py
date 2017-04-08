@@ -231,7 +231,7 @@ def windfinder_regular_get_web_response():
 
 def get_forecast_from_web_and_insert_into_db(raw_channel_, verbose_):
 	time_retrieved_em = now_em()
-	num_minutes_tolerance = 15 
+	num_minutes_tolerance = 5
 	if do_any_raw_forecasts_exist_near_time_retrieved(raw_channel_, time_retrieved_em, 1000*60*num_minutes_tolerance):
 		if verbose_:
 			msg = ('Some raw forecasts near that time (raw channel: %s, w/ time_retrieved within %d minutes of %s) '
