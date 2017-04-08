@@ -955,6 +955,12 @@ def get_days(start_date_, num_days_):
 	r = r[::-1]
 	return r
 
+# TODO: make this function (and the program that calls it) loop through the raw 
+# forecasts in the db rather than times on the hour.  That will avoid these 
+# rough guesses based on a num_minutes_tolerance that won't always match / work 
+# with our web get frequency (and might not even match it right now) and also 
+# will avoid problems when one day we have a successful web get at say 
+# 10:55:05, then 11:00:00. 
 def backfill_reparse_raw_forecast_in_db(raw_weather_channel_, datestr_, fail_on_dupe_):
 	t = get_nearest_raw_forecast_time_retrieved(raw_weather_channel_, datestr_)
 	if t is None:
