@@ -5,6 +5,7 @@ import windgraphs
 
 if __name__ == '__main__':
 
-	windgraphs.get_all_forecasts_and_insert_into_db()
+	verbose = len(sys.argv) == 2 and sys.argv[1] == '--verbose'
+	windgraphs.get_all_forecasts_from_web_and_insert_into_db(verbose)
 
 

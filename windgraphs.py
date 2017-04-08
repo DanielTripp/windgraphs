@@ -61,7 +61,7 @@ def get_forecast_web_get_func(raw_forecast_channel_):
 		d[channel] = lambda: sailflow_get_web_response(raw_forecast_channel_)
 	for meteoblue_day in METEOBLUE_DAYS:
 		channel = METEOBLUE_DAY_TO_RAW_CHANNEL[meteoblue_day]
-		d[channel] = lambda: meteoblue_get_web_response(meteoblue_day)
+		d[channel] = lambda day2=meteoblue_day: meteoblue_get_web_response(day2)
 	return d[raw_forecast_channel_]
 
 def get_forecast_parse_func(raw_forecast_channel_):
@@ -71,7 +71,7 @@ def get_forecast_parse_func(raw_forecast_channel_):
 		'wg': windguru_parse_web_response 
 		}
 	for channel in SAILFLOW_RAW_CHANNELS:
-		d[channel] = lambda s__, t__: sailflow_parse_web_response(s__, channel, t__)
+		d[channel] = lambda s__, t__, c2=channel: sailflow_parse_web_response(s__, c2, t__)
 	for meteoblue_day in METEOBLUE_DAYS:
 		channel = METEOBLUE_DAY_TO_RAW_CHANNEL[meteoblue_day]
 		d[channel] = meteoblue_parse_web_response
@@ -229,19 +229,20 @@ def windfinder_regular_get_web_response():
 				fout.write(r)
 	return r
 
-def get_forecast_from_web_and_insert_into_db(raw_channel_):
+def get_forecast_from_web_and_insert_into_db(raw_channel_, verbose_):
 	time_retrieved_em = now_em()
-	num_minutes_tolerance = 55
+	num_minutes_tolerance = 15 
 	if do_any_raw_forecasts_exist_near_time_retrieved(raw_channel_, time_retrieved_em, 1000*60*num_minutes_tolerance):
-		msg = ('Some raw forecasts near that time (raw channel: %s, w/ time_retrieved within %d minutes of %s) '
-				+'already exist in the database.') % (raw_channel_, num_minutes_tolerance, em_to_str(time_retrieved_em))
-		print msg 
+		if verbose_:
+			msg = ('Some raw forecasts near that time (raw channel: %s, w/ time_retrieved within %d minutes of %s) '
+					+'already exist in the database.') % (raw_channel_, num_minutes_tolerance, em_to_str(time_retrieved_em))
+			print msg 
 	else:
-		get_web_response_func = RAW_CHANNEL_TO_WEB_GET_FUNC[raw_channel_]
-		web_response = get_web_response_func()
+		web_get_func = get_forecast_web_get_func(raw_channel_)
+		web_response = web_get_func()
 		insert_raw_forecast_into_db(raw_channel_, web_response, time_retrieved_em)
-		parse_func = RAW_CHANNEL_TO_PARSE_FUNC[raw_channel_]
-		forecasts = parse_func(web_response, raw_channel_, time_retrieved_em)
+		parse_func = get_forecast_parse_func(raw_channel_)
+		forecasts = parse_func(web_response, time_retrieved_em)
 		insert_parsed_forecasts_into_db(forecasts)
 
 def windfinder_regular_parse_web_response(web_response_str_, time_retrieved_em_):
@@ -249,33 +250,6 @@ def windfinder_regular_parse_web_response(web_response_str_, time_retrieved_em_)
 
 def windfinder_super_parse_web_response(web_response_str_, time_retrieved_em_):
 	return windfinder_parse_web_response(web_response_str_, 'wf_sup', time_retrieved_em_)
-
-def windfinderregular_get_forecast_and_insert_into_db():
-	time_retrieved_em = now_em()
-	num_minutes_tolerance = 55
-	if do_any_raw_forecasts_exist_near_time_retrieved('wf_reg', time_retrieved_em, 1000*60*num_minutes_tolerance):
-		msg = ('Some raw forecasts near that time (raw channel: %s, w/ time_retrieved within %d minutes of %s) '
-					+'already exist in the database.') % ('wf_reg', num_minutes_tolerance, em_to_str(time_retrieved_em))
-		print msg 
-	else:
-		web_response = windfinder_regular_get_web_response()
-		insert_raw_forecast_into_db('wf_reg', web_response, time_retrieved_em)
-		forecasts = windfinder_parse_web_response(web_response, 'wf_reg', time_retrieved_em)
-		insert_parsed_forecasts_into_db(forecasts)
-
-def windfindersuper_get_forecast_and_insert_into_db():
-	web_response = windfinder_super_get_web_response()
-	time_retrieved_em = now_em()
-	insert_raw_forecast_into_db('wf_sup', web_response, time_retrieved_em)
-	forecasts = windfinder_parse_web_response(web_response, 'wf_sup', time_retrieved_em)
-	insert_parsed_forecasts_into_db(forecasts)
-
-def windguru_get_forecast_and_insert_into_db():
-	web_response = windguru_get_web_response()
-	time_retrieved_em = now_em()
-	insert_raw_forecast_into_db('wg', web_response, time_retrieved_em)
-	forecasts = windguru_parse_web_response(web_response, time_retrieved_em)
-	insert_parsed_forecasts_into_db(forecasts)
 
 def parent(node_, n_):
 	r = node_
@@ -629,16 +603,8 @@ def print_reparsed_forecasts_from_db(weather_channel_, datestr_):
 		print em_to_str(t)
 		print 
 		web_response = get_raw_forecast_from_db(weather_channel_, t)
-		if weather_channel_ == 'wg':
-			forecasts = windguru_parse_web_response(web_response, t)
-		elif weather_channel_ in ('wf_reg', 'wf_sup'):
-			forecasts = windfinder_parse_web_response(web_response, weather_channel_, t)
-		elif weather_channel_ in ('sf_q', 'sf_nam12', 'sf_gfs', 'sf_nam3', 'sf_cmc'):
-			forecasts = sailflow_parse_web_response(web_response, weather_channel_, t)
-		elif weather_channel_.startswith(METEOBLUE_RAW_CHANNEL_PREFIX):
-			forecasts = meteoblue_parse_web_response(web_response, t)
-		else:
-			raise Exception('Unknown raw forecast channel "%s"' % weather_channel_)
+		parse_func = get_forecast_parse_func(weather_channel_)
+		forecasts = parse_func(web_response, t)
 		for forecast in forecasts:
 			print forecast
 
@@ -752,14 +718,10 @@ def get_envcan_observations_and_insert_into_db_single_month(date_, dry_run_, pri
 		if printlevel_ in (1, 2):
 			print '%s total parsed observations: %d.  Num successfully inserted: %d' % (monthstr, len(parsed_observations), num_inserts)
 
-def get_all_forecasts_and_insert_into_db():
-	for func in [windfinderregular_get_forecast_and_insert_into_db, windfindersuper_get_forecast_and_insert_into_db, 
-			windguru_get_forecast_and_insert_into_db, sailflow_quicklook_get_forecast_and_insert_into_db, 
-			sailflow_nam12_get_forecast_and_insert_into_db, sailflow_gfs_get_forecast_and_insert_into_db, 
-			sailflow_nam3_get_forecast_and_insert_into_db, sailflow_cmc_get_forecast_and_insert_into_db, 
-			meteoblue_get_forecast_and_insert_into_db]:
+def get_all_forecasts_from_web_and_insert_into_db(verbose_):
+	for raw_channel in RAW_CHANNELS:
 		try:
-			func()
+			get_forecast_from_web_and_insert_into_db(raw_channel, verbose_)
 		except:
 			traceback.print_exc()
 
@@ -827,16 +789,6 @@ def meteoblue_parse_web_response(web_response_, time_retrieved_em_):
 		forecast = Forecast('mb', time_retrieved_em_, target_time_em, wind_knots, -1)
 		r.append(forecast)
 	return r
-
-def meteoblue_get_forecast_and_insert_into_db(day_):
-	channel = '%s%d' % (METEOBLUE_RAW_CHANNEL_PREFIX, day_)
-	cur_time_em = now_em()
-	last_raw_forecast_time_retrieved = get_raw_forecast_near_time_retrieved(channel, cur_time_em, False)
-	if last_raw_forecast_time_retrieved == None or cur_time_em - last_raw_forecast_time_retrieved > 1000*60*10:
-		web_response = meteoblue_get_web_response(day_)
-		insert_raw_forecast_into_db(channel, web_response, cur_time_em)
-		forecasts = meteoblue_parse_web_response(web_response, cur_time_em)
-		insert_parsed_forecasts_into_db(forecasts)
 
 def get_forecast_near_time_retrieveds(weather_channel_, time_retrieved_approx_, target_time_, 
 		get_time_greater_than_aot_less_than_, maxrows_, time_span_):
@@ -1007,21 +959,13 @@ def backfill_reparse_raw_forecast_in_db(raw_weather_channel_, datestr_, fail_on_
 		print t
 		print em_to_str(t)
 		web_response = get_raw_forecast_from_db(raw_weather_channel_, t)
-		if raw_weather_channel_ == 'wg':
-			forecasts = windguru_parse_web_response(web_response, t)
-		elif raw_weather_channel_ in ('wf_reg', 'wf_sup'):
-			forecasts = windfinder_parse_web_response(web_response, raw_weather_channel_, t)
-		elif raw_weather_channel_ in ('sf_q', 'sf_nam12', 'sf_gfs', 'sf_nam3', 'sf_cmc'):
-			forecasts = sailflow_parse_web_response(web_response, raw_weather_channel_, t)
-		elif raw_weather_channel_.startswith(METEOBLUE_RAW_CHANNEL_PREFIX):
-			forecasts = meteoblue_parse_web_response(web_response, t)
-		else:
-			raise Exception('unknown raw weather channel "%s"' % raw_weather_channel_)
+		parse_func = get_forecast_parse_func(raw_weather_channel_)
+		forecasts = parse_func(web_response, t)
 		print 'Got %d forecasts.' % len(forecasts)
 		for forecast in forecasts:
 			print forecast
 		num_minutes_tolerance = 10
-		parsed_weather_channels = set([forecast.weather_channel for forecast in forecasts])
+		parsed_weather_channels = list(set([forecast.weather_channel for forecast in forecasts]))
 		if do_any_parsed_forecasts_exist_near_time_retrieved(parsed_weather_channels, t, 1000*60*num_minutes_tolerance):
 			msg = ('Some parsed forecasts near that time (parsed channels: %s, w/ time_retrieved within %d minutes of %s) '
 					+'already exist in the database.') % (parsed_weather_channels, num_minutes_tolerance, em_to_str(t))
