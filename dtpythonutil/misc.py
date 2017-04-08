@@ -4,6 +4,7 @@ import sys, os, os.path, time, math, datetime, calendar, bisect, tempfile, subpr
 import profile, cProfile
 from collections import Sequence, MutableSequence, defaultdict, MutableSet
 from itertools import *
+import pytz, dateutil.tz
 
 # Workaround for http://bugs.python.org/issue7980 
 time.strptime("2013-06-02", "%Y-%m-%d")
@@ -1256,8 +1257,15 @@ class TimeWindow(object):
 	def gt_trimmed_vilist(self, vilist_):
 		return [vi for vi in vilist_ if vi.time_retrieved > self.end]
 
+def now_str_iso8601():
+	local_tzinfo = dateutil.tz.tzlocal()
+	dt = datetime.datetime.now()
+	dt_with_timezone = datetime.datetime.fromtimestamp(time.mktime(dt.timetuple()), local_tzinfo)
+	return dt_with_timezone.strftime('%Y-%m-%dT%H:%M:%S%z')
+
 if __name__ == '__main__':
 
 	pass
+
 
 
