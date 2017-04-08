@@ -234,8 +234,8 @@ def get_forecast_from_web_and_insert_into_db(raw_channel_, force_web_get_, dont_
 	num_minutes_tolerance = 5
 	if not force_web_get_ and \
 				do_any_raw_forecasts_exist_near_time_retrieved(raw_channel_, time_retrieved_em, 1000*60*num_minutes_tolerance):
-		msg = ('Some raw forecasts near that time (raw channel: %s, w/ time_retrieved within %d minutes of %s) '
-				+'already exist in the database.') % (raw_channel_, num_minutes_tolerance, em_to_str(time_retrieved_em))
+		msg = ('%s  Some raw forecasts near that time (raw channel: %s, w/ time_retrieved within %d minutes of %s) '
+				+'already exist in the database.') % (now_str_iso8601(), raw_channel_, num_minutes_tolerance, em_to_str(time_retrieved_em))
 		print msg 
 	else:
 		web_get_func = get_forecast_web_get_func(raw_channel_)
@@ -422,12 +422,12 @@ def windguru_parse_web_response(web_response_str_, time_retrieved_):
 							gusts = windgusts[i]
 							# I think that this code is here to handle cases like 2016-08-31 14:00 - 23:00: 
 							if speed is None:
-								print '%s Omitting WindGuru %s reading #%d (day=%s, hour=%s) on account of null data.  speed=%s, gusts=%s.' \
+								print '%s  Omitting WindGuru %s reading #%d (day=%s, hour=%s) on account of null data.  speed=%s, gusts=%s.' \
 										% (now_str_iso8601(), model_to_weatherchannel[model], i, days[i], hours[i], speed, gusts)
 								for l in (windspeeds, windgusts, days, hours):
 									del l[i]
 							elif speed is not None and gusts is None:
-								print '%s Fudging WindGuru %s reading #%d (day=%s, hour=%s) on account of null gusts.  Setting gusts to speed (%s).' \
+								print '%s  Fudging WindGuru %s reading #%d (day=%s, hour=%s) on account of null gusts.  Setting gusts to speed (%s).' \
 										% (now_str_iso8601(), model_to_weatherchannel[model], i, days[i], hours[i], speed)
 								windgusts[i] = windspeeds[i]
 						days = days[cutoff_idx:]
