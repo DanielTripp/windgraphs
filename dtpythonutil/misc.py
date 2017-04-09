@@ -123,20 +123,20 @@ def str_to_em(datetimestr_, format_=None):
 	def impl(str__, format__):
 		return int(time.mktime(time.strptime(str__, format__))*1000)
 	if format_ is None:
-		try:
+		if len(datetimestr_) == 23 and datetimestr_[-4] == '.':
 			try:
-				if len(datetimestr_) == 23 and datetimestr_[-4] == '.':
-					return impl(datetimestr_[:-4], '%Y-%m-%d %H:%M:%S') + int(datetimestr_[-3:])
+				return impl(datetimestr_[:-4], '%Y-%m-%d %H:%M:%S') + int(datetimestr_[-3:])
 			except ValueError:
 				pass
-			return impl(datetimestr_, '%Y-%m-%d %H:%M:%S')
-		except ValueError:
+		for f in ['%Y-%m-%d %H:%M:%S', '%Y-%m-%d %H:%M', '%Y-%m-%d', '%Y-%m', '%Y']:
 			try:
-				return impl(datetimestr_, '%Y-%m-%d %H:%M')
+				return impl(datetimestr_, f)
 			except ValueError:
-				return impl(datetimestr_, '%Y-%m-%d')
+				pass
+		else:
+			raise Exception('The date/time "%s" did not match any of the formats that this function recognizes.' % datetimestr_)
 	else:
-		return impl(format_)
+		return impl(datetimestr_, format_)
 
 def printerr(*args):
 	sys.stderr.write(' '.join((str(x) for x in args)) + os.linesep)
