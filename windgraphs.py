@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-import sys, urllib2, json, pprint, re, datetime, os, threading, traceback, io, math, base64, StringIO, csv, tempfile, stat
+import sys, urllib2, json, pprint, re, datetime, os, threading, traceback, io, math, base64, StringIO, csv, tempfile, stat, random
 import dateutil.parser, dateutil.tz
 import BeautifulSoup, psycopg2, pytz
 import matplotlib
@@ -23,6 +23,8 @@ with open('PARSED_WEATHER_CHANNELS.json') as fin:
 	PARSED_WEATHER_CHANNELS = json.load(fin)
 with open('WEATHER_CHANNEL_TO_COLOR.json') as fin:
 	WEATHER_CHANNEL_TO_COLOR = json.load(fin)
+with open('WEATHER_CHANNEL_TO_MARKER.json') as fin:
+	WEATHER_CHANNEL_TO_MARKER = json.load(fin)
 with open('WEATHER_CHANNEL_TO_LONG_MULTILINE_NAME.json') as fin:
 	WEATHER_CHANNEL_TO_LONG_MULTILINE_NAME = json.load(fin)
 with open('OBSERVATION_COLOR.json') as fin:
@@ -1139,10 +1141,7 @@ def copy_parsed_observations_for_testing(src_end_em_, dest_end_em_, time_window_
 		curs.close()
 
 def get_graph_width_inches(num_days_):
-	if num_days_ <= 30:
-		return 14
-	else:
-		return get_range_val((30,14), (365,170), num_days_)
+	return get_range_val((15,7), (365,170), num_days_)
 
 def get_graph_info(target_time_of_day_, weather_check_num_hours_in_advance_, end_date_, num_days_):
 	target_time_of_day = datetime.time(target_time_of_day_, 00)
@@ -1153,27 +1152,18 @@ def get_graph_info(target_time_of_day_, weather_check_num_hours_in_advance_, end
 
 	days = get_days(end_date_, num_days_)
 	target_times = [datetime_to_em(datetime.datetime.combine(target_day, target_time_of_day)) for target_day in days]
-	forecast_channel_to_runs = defaultdict(lambda: [[]])
-	observation_runs = [[]]
+	channel_to_forecasts = defaultdict(lambda: [])
+	observations = []
 	for target_t in target_times:
 		check_weather_t = target_t - 1000*60*60*weather_check_num_hours_in_advance_
 
 		observation = get_observation_from_db('gc.ca', target_t)
-		if observation is None:
-			observation_runs.append([])
-		else:
-			observation_runs[-1].append((em_to_datetime(target_t), observation.base_wind))
+		if observation is not None:
+			observations.append((em_to_datetime(target_t), observation.base_wind))
 			for channel in PARSED_WEATHER_CHANNELS:
 				forecast = get_forecast_parsed_near(channel, check_weather_t, target_t)
-				if forecast is None:
-					forecast_channel_to_runs[channel].append([])
-				else:
-					forecast_channel_to_runs[channel][-1].append((em_to_datetime(target_t), forecast.base_wind))
-
-	observation_runs = [e for e in observation_runs if len(e) > 0]
-
-	for forecast_runs in forecast_channel_to_runs.itervalues():
-		forecast_runs[:] = [e for e in forecast_runs if len(e) > 0]
+				if forecast is not None:
+					channel_to_forecasts[channel].append((em_to_datetime(target_t), forecast.base_wind))
 
 	def xvals(run__):
 		return [e[0] for e in run__]
@@ -1181,20 +1171,46 @@ def get_graph_info(target_time_of_day_, weather_check_num_hours_in_advance_, end
 	def yvals(run__):
 		return [e[1] for e in run__]
 
-	# Draw "actual wind" lines and dots: 
+	# Draw "actual wind" dots: 
 	observation_color = OBSERVATION_COLOR
-	for run in observation_runs:
-		plt.plot(xvals(run), yvals(run), markeredgecolor=observation_color, color=observation_color, marker='o', 
-				markersize=15, linestyle='solid', linewidth=1)
+	plt.plot(xvals(observations), yvals(observations), markeredgecolor=observation_color, color=observation_color, marker='o', 
+			markersize=21, linestyle='none')
+
+	# Draw horizontal lines, lining up with y-axis intervals: 
+	min_xval = min(xvals(observations))
+	max_yval = max(yvals(observations))
+	for forecasts in channel_to_forecasts.itervalues():
+		min_xval = min(min_xval, min(xvals(forecasts)))
+		max_yval = max(max_yval, max(yvals(forecasts)))
+	max_yval = round_up(int(math.ceil(max_yval))+5, 5)
+
+	target_time_to_forecast_wind_to_channels = defaultdict(lambda: defaultdict(list))
+	for forecast_channel, forecasts in channel_to_forecasts.iteritems():
+		for forecast in forecasts:
+			target_time, forecast_wind = forecast
+			target_time_to_forecast_wind_to_channels[target_time][forecast_wind].append(forecast_channel)
+
+	marker_width_minutes = 420
+	for channel, forecasts in channel_to_forecasts.iteritems():
+		for i, forecast in enumerate(forecasts):
+			target_time, forecast_wind = forecast
+			channels_with_this_wind = target_time_to_forecast_wind_to_channels[target_time][forecast_wind]
+			if len(channels_with_this_wind) == 1:
+				x_offset = 0
+			elif len(channels_with_this_wind) == 2:
+				x_offset = (marker_width_minutes/2)*([-1,1][channels_with_this_wind.index(channel)])
+			else:
+				x_offset = marker_width_minutes*([-1,0,1][channels_with_this_wind.index(channel) % 3])
+			forecasts[i] = (forecast[0] + datetime.timedelta(minutes=x_offset), forecast[1])
 
 	# Draw forecast channel lines and dots: 
-	for channel in forecast_channel_to_runs.keys():
-		color = WEATHER_CHANNEL_TO_COLOR[channel]
-		for forecast_run in forecast_channel_to_runs[channel]:
-			xs = xvals(forecast_run)
-			ys = yvals(forecast_run)
-			plt.plot(xs, ys, color=color, marker='o', markeredgecolor=color, markersize=7,
-					linestyle='solid', linewidth=1)
+	for forecast_channel, forecasts in channel_to_forecasts.iteritems():
+		color = WEATHER_CHANNEL_TO_COLOR[forecast_channel]
+		xs = xvals(forecasts)
+		ys = yvals(forecasts)
+		marker = WEATHER_CHANNEL_TO_MARKER[forecast_channel]
+		plt.plot(xs, ys, color=color, marker=marker, markeredgecolor=color, markersize=9, markeredgewidth=2, 
+				linestyle='none')
 
 	# Increasing the amount of domain shown, because otherwise the first and last 
 	# data points are of the left and right borders of the image, and that looks 
@@ -1209,20 +1225,11 @@ def get_graph_info(target_time_of_day_, weather_check_num_hours_in_advance_, end
 	ax.xaxis.set_major_locator(matplotlib.ticker.FixedLocator(
 			[pylab.date2num(em_to_datetime(x)) for x in target_times[::get_xaxis_tick_step(num_days_)]]))
 
-	# Draw horizontal lines, lining up with y-axis intervals: 
-	min_xval = observation_runs[0][0][0]
-	max_yval = 1
-	for observation_run in observation_runs:
-		min_xval = min(min_xval, min(xvals(observation_run)))
-		max_yval = max(max_yval, max(yvals(observation_run)))
-	for forecast_runs in forecast_channel_to_runs.itervalues():
-		for forecast_run in forecast_runs:
-			min_xval = min(min_xval, min(xvals(forecast_run)))
-			max_yval = max(max_yval, max(yvals(forecast_run)))
-	max_yval += 1
-	for y in range(0, max_yval+5, 5):
+	for y in range(0, max_yval, 5):
 		plt.axhline(y, color=(0.5,0.5,0.5), alpha=0.5, linestyle='-')
 	plt.yticks(np.arange(0, max_yval+5, 5)) # Do this /after/ the axhline() calls or else the min value might not be respected. 
+
+	plt.ylim(-max_yval/15.0, max_yval)
 
 	plt.ylabel('Average wind (knots)')
 
@@ -1234,27 +1241,23 @@ def get_graph_info(target_time_of_day_, weather_check_num_hours_in_advance_, end
 	main_figure.clf()
 	plt.close()
 
-	channel_to_score = get_channel_to_score(observation_runs, forecast_channel_to_runs)
+	channel_to_score = get_forecast_channel_to_score(observations, channel_to_forecasts)
 
 	return {'png': png_content_base64, 'channel_to_score': channel_to_score, 
-			'channel_to_num_forecasts': get_channel_to_num_forecasts(forecast_channel_to_runs)}
+			'channel_to_num_forecasts': get_channel_to_num_forecasts(channel_to_forecasts)}
 
-def get_channel_to_num_forecasts(forecast_channel_to_runs_):
+def get_channel_to_num_forecasts(channel_to_forecasts_):
 	r = {}
-	for channel, forecast_runs in forecast_channel_to_runs_.iteritems():
-		r[channel] = sum(len(run) for run in forecast_runs)
+	for channel, forecasts in channel_to_forecasts_.iteritems():
+		r[channel] = len(forecasts)
 	return r
 
-def get_channel_to_score(observation_runs_, forecast_channel_to_runs_):
-	observations = sum(observation_runs_, [])
+def get_forecast_channel_to_score(observations_, channel_to_forecasts_):
 	observation_datetime_to_val = {}
-	for observation in observations:
+	for observation in observations_:
 		observation_datetime_to_val[observation[0]] = observation[1]
-	channel_to_forecasts = {}
-	for channel, runs in forecast_channel_to_runs_.iteritems():
-		channel_to_forecasts[channel] = sum(runs, [])
 	r = {}
-	for channel, forecasts in channel_to_forecasts.iteritems():
+	for channel, forecasts in channel_to_forecasts_.iteritems():
 		channel_score = 0
 		for forecast in forecasts:
 			forecast_datetime, forecast_val = forecast
