@@ -26,10 +26,14 @@ except OSError:
 	pass
 with tempfile.NamedTemporaryFile(prefix=png_file_prefix, suffix='.png', dir=png_dir, delete=False) as fout:
 	fout.write(base64.b64decode(png_in_base64))
-	os.chmod(fout.name, stat.S_IRWXU | stat.S_IRWXO)
-	shutil.copyfile(fout.name, os.path.join(os.path.dirname(fout.name), 'latest.png'))
-	print 'Wrote PNG to %s' % fout.name
-	print 
+	png_file = fout.name
+	os.chmod(png_file, stat.S_IRWXU | stat.S_IRWXO)
+copy_of_png_file = os.path.join(os.path.dirname(png_file), 'latest.png')
+shutil.copyfile(png_file, copy_of_png_file)
+copy_stat = os.stat(copy_of_png_file)
+os.utime(copy_of_png_file, (copy_stat.st_atime, copy_stat.st_mtime+1))
+print 'Wrote PNG to %s' % fout.name
+print 
 del graph_info['png']
 
 pprint.pprint(graph_info)
