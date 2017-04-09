@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-import sys, os, stat, datetime, pprint, base64, tempfile
+import sys, os, stat, datetime, pprint, base64, tempfile, shutil
 import windgraphs
 
 if len(sys.argv) not in (4, 5):
@@ -26,9 +26,10 @@ except OSError:
 	pass
 with tempfile.NamedTemporaryFile(prefix=png_file_prefix, suffix='.png', dir=png_dir, delete=False) as fout:
 	fout.write(base64.b64decode(png_in_base64))
+	os.chmod(fout.name, stat.S_IRWXU | stat.S_IRWXO)
+	shutil.copyfile(fout.name, os.path.join(os.path.dirname(fout.name), 'latest.png'))
 	print 'Wrote PNG to %s' % fout.name
 	print 
-	os.chmod(fout.name, stat.S_IRWXU | stat.S_IRWXO)
 del graph_info['png']
 
 pprint.pprint(graph_info)
