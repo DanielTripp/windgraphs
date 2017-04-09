@@ -1185,7 +1185,7 @@ def get_graph_info(target_time_of_day_, weather_check_num_hours_in_advance_, end
 	observation_color = OBSERVATION_COLOR
 	for run in observation_runs:
 		plt.plot(xvals(run), yvals(run), markeredgecolor=observation_color, color=observation_color, marker='o', 
-				markersize=7, linestyle='solid', linewidth=1)
+				markersize=15, linestyle='solid', linewidth=1)
 
 	# Draw forecast channel lines and dots: 
 	for channel in forecast_channel_to_runs.keys():

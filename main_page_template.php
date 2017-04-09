@@ -90,7 +90,7 @@ function update_img(target_time_, weather_check_num_hours_, end_date_, num_days_
 function update_img_legend(channels_) {
 	var spaces = '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ';
 	var html = '<font size="+1">';
-	html += sprintf('<font color="%s">&#9679;&nbsp;Actual&nbsp;wind</font>%s', OBSERVATION_COLOR, spaces);
+	html += sprintf('<font color="%s"><font size="+2">&#9679;&nbsp;Actual&nbsp;wind</font></font>%s', OBSERVATION_COLOR, spaces);
 	channels_.forEach(function(channel) {
 		var channel_long_name = WEATHER_CHANNEL_TO_SINGLE_LINE_NAME[channel];
 		var channel_color = WEATHER_CHANNEL_TO_COLOR[channel];
