@@ -231,13 +231,7 @@ def windfinder_regular_get_web_response():
 
 def get_forecast_from_web_and_insert_into_db(raw_channel_, force_web_get_, dont_insert_into_db_):
 	time_retrieved_em = now_em()
-	num_minutes_tolerance = 5
-	if not force_web_get_ and \
-				do_any_raw_forecasts_exist_near_time_retrieved(raw_channel_, time_retrieved_em, 1000*60*num_minutes_tolerance):
-		msg = ('%s  Some raw forecasts near that time (raw channel: %s, w/ time_retrieved within %d minutes of %s) '
-				+'already exist in the database.') % (now_str_iso8601(), raw_channel_, num_minutes_tolerance, em_to_str(time_retrieved_em))
-		print msg 
-	else:
+	if force_web_get_ or not do_any_raw_forecasts_exist_in_db_since_top_of_hour(raw_channel_, time_retrieved_em):
 		web_get_func = get_forecast_web_get_func(raw_channel_)
 		web_response = web_get_func()
 		insert_raw_forecast_into_db(raw_channel_, web_response, time_retrieved_em)
@@ -1000,6 +994,23 @@ def do_any_forecasts_exist_near_time_retrieved(table_, channels_, t_, tolerance_
 		sqlstr = '''select time_retrieved from %s where time_retrieved between %%s and %%s and 
 				weather_channel in (%s) limit 1''' % (table_, ','.join("'%s'" % x for x in channels_))
 		cols = [t_ - tolerance_, t_ + tolerance_]
+		curs.execute(sqlstr, cols)
+		r = False
+		for row in curs:
+			r = True
+		return r
+	finally:
+		curs.close()
+
+def do_any_raw_forecasts_exist_in_db_since_top_of_hour(raw_channel_, now_em_):
+	now_datetime = em_to_datetime(now_em_)
+	top_of_hour_datetime = datetime.datetime(now_datetime.year, now_datetime.month, now_datetime.day, now_datetime.hour)
+	top_of_hour_em = datetime_to_em(top_of_hour_datetime)
+	curs = db_conn().cursor()
+	try:
+		sqlstr = '''select time_retrieved from wind_forecasts_raw where time_retrieved >= %s and 
+				weather_channel = %s limit 1'''
+		cols = [top_of_hour_em, raw_channel_]
 		curs.execute(sqlstr, cols)
 		r = False
 		for row in curs:
