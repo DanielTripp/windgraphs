@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-import sys, urllib2, json, pprint, re, datetime, os, threading, traceback, io, math, base64, StringIO, csv, tempfile, stat, random
+import sys, urllib2, json, pprint, re, datetime, os, threading, traceback, io, math, base64, StringIO, csv, tempfile, stat, random, copy
 import dateutil.parser, dateutil.tz
 import BeautifulSoup, psycopg2, pytz
 import matplotlib
@@ -25,10 +25,20 @@ with open('WEATHER_CHANNEL_TO_COLOR.json') as fin:
 	WEATHER_CHANNEL_TO_COLOR = json.load(fin)
 with open('WEATHER_CHANNEL_TO_MARKER.json') as fin:
 	WEATHER_CHANNEL_TO_MARKER = json.load(fin)
+with open('FORECAST_MARKER_SIZE.json') as fin:
+	FORECAST_MARKER_SIZE = json.load(fin)
+with open('FORECAST_MARKER_EDGE_WIDTH.json') as fin:
+	FORECAST_MARKER_EDGE_WIDTH = json.load(fin)
+with open('OBSERVATION_MARKER_EDGE_WIDTH.json') as fin:
+	OBSERVATION_MARKER_EDGE_WIDTH = json.load(fin)
 with open('WEATHER_CHANNEL_TO_LONG_MULTILINE_NAME.json') as fin:
 	WEATHER_CHANNEL_TO_LONG_MULTILINE_NAME = json.load(fin)
 with open('OBSERVATION_COLOR.json') as fin:
 	OBSERVATION_COLOR = json.load(fin)
+with open('OBSERVATION_MARKER.json') as fin:
+	OBSERVATION_MARKER = json.load(fin)
+with open('OBSERVATION_MARKER_SIZE.json') as fin:
+	OBSERVATION_MARKER_SIZE = json.load(fin)
 
 assert set(WEATHER_CHANNEL_TO_COLOR.keys()) == set(PARSED_WEATHER_CHANNELS) \
 		== set(WEATHER_CHANNEL_TO_LONG_MULTILINE_NAME.keys())
@@ -1172,9 +1182,9 @@ def get_graph_info(target_time_of_day_, weather_check_num_hours_in_advance_, end
 		return [e[1] for e in run__]
 
 	# Draw "actual wind" dots: 
-	observation_color = OBSERVATION_COLOR
-	plt.plot(xvals(observations), yvals(observations), markeredgecolor=observation_color, color=observation_color, marker='o', 
-			markersize=21, linestyle='none')
+	plt.plot(xvals(observations), yvals(observations), markeredgecolor=OBSERVATION_COLOR, color=OBSERVATION_COLOR, 
+			marker=OBSERVATION_MARKER, markeredgewidth=OBSERVATION_MARKER_EDGE_WIDTH, markersize=OBSERVATION_MARKER_SIZE, 
+			linestyle='none')
 
 	# Draw horizontal lines, lining up with y-axis intervals: 
 	min_xval = min(xvals(observations))
@@ -1191,7 +1201,10 @@ def get_graph_info(target_time_of_day_, weather_check_num_hours_in_advance_, end
 			target_time_to_forecast_wind_to_channels[target_time][forecast_wind].append(forecast_channel)
 
 	marker_width_minutes = 420
-	for channel, forecasts in channel_to_forecasts.iteritems():
+	# We're going to mangle the data for displaying.  We don't want to mangle the 
+	# original data because we still haven't calculated the scores from it yet.
+	display_channel_to_forecasts = copy.deepcopy(channel_to_forecasts)
+	for channel, forecasts in display_channel_to_forecasts.iteritems():
 		for i, forecast in enumerate(forecasts):
 			target_time, forecast_wind = forecast
 			channels_with_this_wind = target_time_to_forecast_wind_to_channels[target_time][forecast_wind]
@@ -1204,13 +1217,13 @@ def get_graph_info(target_time_of_day_, weather_check_num_hours_in_advance_, end
 			forecasts[i] = (forecast[0] + datetime.timedelta(minutes=x_offset), forecast[1])
 
 	# Draw forecast channel lines and dots: 
-	for forecast_channel, forecasts in channel_to_forecasts.iteritems():
+	for forecast_channel, forecasts in display_channel_to_forecasts.iteritems():
 		color = WEATHER_CHANNEL_TO_COLOR[forecast_channel]
 		xs = xvals(forecasts)
 		ys = yvals(forecasts)
 		marker = WEATHER_CHANNEL_TO_MARKER[forecast_channel]
-		plt.plot(xs, ys, color=color, marker=marker, markeredgecolor=color, markersize=9, markeredgewidth=2, 
-				linestyle='none')
+		plt.plot(xs, ys, color=color, marker=marker, markeredgecolor=color, markersize=FORECAST_MARKER_SIZE, 
+				markeredgewidth=FORECAST_MARKER_EDGE_WIDTH, linestyle='none')
 
 	# Increasing the amount of domain shown, because otherwise the first and last 
 	# data points are of the left and right borders of the image, and that looks 
