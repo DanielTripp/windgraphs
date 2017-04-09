@@ -74,7 +74,7 @@ def m_to_str(m_):
 	return '%.2f minutes' % (m_/(1000*60.0))
 
 # eg. given [1, 2, 3, 4], this yields (1, 2), then (2, 3), then (3, 4) 
-def hopscotch(iterable_, n=2):
+def hopscotch(iterable_, n=2, step=1):
 	assert n >= 2
 	it = iter(iterable_)
 	try:
@@ -83,7 +83,8 @@ def hopscotch(iterable_, n=2):
 			e += (it.next(),)
 		while True:
 			yield e
-			e = e[1:] + (it.next(),)
+			for i in xrange(step):
+				e = e[1:] + (it.next(),)
 	except StopIteration:
 		pass
 
