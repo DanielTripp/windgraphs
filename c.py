@@ -10,11 +10,11 @@ read_var_from_json_file('WEATHER_CHANNEL_TO_COLOR')
 read_var_from_json_file('WEATHER_CHANNEL_TO_MARKER')
 read_var_from_json_file('FORECAST_MARKER_SIZE')
 read_var_from_json_file('FORECAST_MARKER_EDGE_WIDTH')
-read_var_from_json_file('OBSERVATION_MARKER_EDGE_WIDTH')
 read_var_from_json_file('WEATHER_CHANNEL_TO_LONG_MULTILINE_NAME')
 read_var_from_json_file('OBSERVATION_COLOR')
 read_var_from_json_file('OBSERVATION_MARKER')
 read_var_from_json_file('OBSERVATION_MARKER_SIZE')
+read_var_from_json_file('OBSERVATION_MARKER_EDGE_WIDTH')
 
 assert set(WEATHER_CHANNEL_TO_COLOR.keys()) == set(PARSED_WEATHER_CHANNELS) \
 		== set(WEATHER_CHANNEL_TO_LONG_MULTILINE_NAME.keys())
