@@ -10,14 +10,14 @@ read_var_from_json_file('FORECAST_PARSED_CHANNEL_TO_COLOR')
 read_var_from_json_file('FORECAST_PARSED_CHANNEL_TO_MARKER')
 read_var_from_json_file('FORECAST_MARKER_SIZE')
 read_var_from_json_file('FORECAST_MARKER_EDGE_WIDTH')
-read_var_from_json_file('WEATHER_CHANNEL_TO_LONG_MULTILINE_NAME')
+read_var_from_json_file('FORECAST_PARSED_CHANNEL_TO_LONG_MULTILINE_NAME')
 read_var_from_json_file('OBSERVATION_COLOR')
 read_var_from_json_file('OBSERVATION_MARKER')
 read_var_from_json_file('OBSERVATION_MARKER_SIZE')
 read_var_from_json_file('OBSERVATION_MARKER_EDGE_WIDTH')
 
 assert set(FORECAST_PARSED_CHANNEL_TO_COLOR.keys()) == set(FORECAST_PARSED_CHANNELS) \
-		== set(WEATHER_CHANNEL_TO_LONG_MULTILINE_NAME.keys())
+		== set(FORECAST_PARSED_CHANNEL_TO_LONG_MULTILINE_NAME.keys())
 
 METEOBLUE_DAYS = tuple(range(1, 7))
 METEOBLUE_RAW_CHANNEL_PREFIX = 'mb-day'
