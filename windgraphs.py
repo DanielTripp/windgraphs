@@ -471,7 +471,7 @@ def parse_envcan_observation_web_response(web_response_):
 				datetime = fields[0]
 				time_retrieved = int(time.mktime(time.strptime(datetime, '%Y-%m-%d %H:%M'))*1000)
 				gust = -1
-				r.append(Observation('gc.ca', time_retrieved, wind, gust))
+				r.append(Observation('envcan', time_retrieved, wind, gust))
 	return r
 
 def kmph_to_knots(kmph_):
@@ -563,7 +563,7 @@ def print_reparsed_observation_from_db(channel_, datestr_):
 		print t
 		print em_to_str(t)
 		print 
-		if channel_ == 'gc.ca':
+		if channel_ == 'envcan':
 			for parsed_observation in parse_envcan_observation_web_response(content):
 				print parsed_observation
 		elif channel_ == 'navcan':
@@ -593,7 +593,7 @@ def get_this_month_and_last_dates():
 	return (today, last_month_date)
 
 def get_observations_and_insert_into_db(channel_, dry_run_, printlevel_):
-	if channel_ == 'gc.ca':
+	if channel_ == 'envcan':
 		get_envcan_observations_and_insert_into_db(dry_run_, printlevel_)
 	elif channel_ == 'navcan':
 		get_navcan_observations_and_insert_into_db(dry_run_, printlevel_)
@@ -679,7 +679,7 @@ def get_envcan_observations_and_insert_into_db_single_month(date_, dry_run_, pri
 		print '%s raw observations:' % monthstr
 		print web_response
 	if not dry_run_:
-		insert_success = insert_raw_observation_into_db('gc.ca', web_response)
+		insert_success = insert_raw_observation_into_db('envcan', web_response)
 		if printlevel_ in (1, 2):
 			print '%s insert (raw) was a success: %s' % (monthstr, insert_success)
 	parsed_observations = parse_envcan_observation_web_response(web_response)
@@ -914,7 +914,7 @@ def get_observation_from_db(channel_, t_):
 		curs.execute(sqlstr, [channel_, t_])
 		for row in curs:
 			base_wind, gust_wind = row
-			return Observation('gc.ca', t_, base_wind, gust_wind)
+			return Observation('envcan', t_, base_wind, gust_wind)
 		else:
 			return None
 	finally:
@@ -1134,7 +1134,7 @@ def get_graph_info(target_time_of_day_, weather_check_num_hours_in_advance_, end
 	for target_t in target_times:
 		check_weather_t = target_t - 1000*60*60*weather_check_num_hours_in_advance_
 
-		observation = get_observation_from_db('gc.ca', target_t)
+		observation = get_observation_from_db('envcan', target_t)
 		if observation is not None:
 			observations.append((em_to_datetime(target_t), observation.base_wind))
 			for channel in c.FORECAST_PARSED_CHANNELS:

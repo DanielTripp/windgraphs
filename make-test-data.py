@@ -12,7 +12,7 @@ if __name__ == '__main__':
 	if 1:
 		for day in xrange(1, 30):
 			wind = max(0, get_range_val((16,0), (17,1), day))
-			print "insert into wind_observations_parsed values ('gc.ca', str_to_em('1980-01-%02d 08:00:00'), '1980-01-%02d 08:00:00', %d, -1);" \
+			print "insert into wind_observations_parsed values ('envcan', str_to_em('1980-01-%02d 08:00:00'), '1980-01-%02d 08:00:00', %d, -1);" \
 					% (day, day, wind)
 
 	if 1:

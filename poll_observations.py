@@ -7,7 +7,7 @@ if __name__ == '__main__':
 
 	arg_parser = argparse.ArgumentParser()
 	arg_parser.add_argument('--dry-run', action='store_true')
-	arg_parser.add_argument('--channel', required=True, choices=('navcan', 'gc.ca'))
+	arg_parser.add_argument('--channel', required=True, choices=('navcan', 'envcan'))
 	arg_parser.add_argument('--print-level', type=int, default=0, choices=(0,1,2))
 	args = arg_parser.parse_args()
 	channel = args.channel
