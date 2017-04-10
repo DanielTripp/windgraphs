@@ -1137,7 +1137,7 @@ def get_graph_info(target_time_of_day_, weather_check_num_hours_in_advance_, end
 		observation = get_observation_from_db('gc.ca', target_t)
 		if observation is not None:
 			observations.append((em_to_datetime(target_t), observation.base_wind))
-			for channel in c.PARSED_WEATHER_CHANNELS:
+			for channel in c.FORECAST_PARSED_CHANNELS:
 				forecast = get_forecast_parsed_near(channel, check_weather_t, target_t)
 				if forecast is not None:
 					channel_to_forecasts[channel].append((em_to_datetime(target_t), forecast.base_wind))

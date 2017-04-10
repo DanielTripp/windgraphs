@@ -5,7 +5,7 @@ def read_var_from_json_file(var_name_):
 	with open(filename) as fin:
 		globals()[var_name_] = json.load(fin)
 
-read_var_from_json_file('PARSED_WEATHER_CHANNELS')
+read_var_from_json_file('FORECAST_PARSED_CHANNELS')
 read_var_from_json_file('WEATHER_CHANNEL_TO_COLOR')
 read_var_from_json_file('WEATHER_CHANNEL_TO_MARKER')
 read_var_from_json_file('FORECAST_MARKER_SIZE')
@@ -16,7 +16,7 @@ read_var_from_json_file('OBSERVATION_MARKER')
 read_var_from_json_file('OBSERVATION_MARKER_SIZE')
 read_var_from_json_file('OBSERVATION_MARKER_EDGE_WIDTH')
 
-assert set(WEATHER_CHANNEL_TO_COLOR.keys()) == set(PARSED_WEATHER_CHANNELS) \
+assert set(WEATHER_CHANNEL_TO_COLOR.keys()) == set(FORECAST_PARSED_CHANNELS) \
 		== set(WEATHER_CHANNEL_TO_LONG_MULTILINE_NAME.keys())
 
 METEOBLUE_DAYS = tuple(range(1, 7))
