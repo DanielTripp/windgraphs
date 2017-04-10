@@ -1,9 +1,10 @@
 #!/usr/bin/env python
 
 import sys, pprint, png, StringIO, array, io
-import windgraphs, u
+import c
 from dtpythonutil.misc import *
 import matplotlib
+matplotlib.use('Agg')
 import matplotlib.dates
 import matplotlib.pyplot as plt
 
@@ -80,13 +81,13 @@ def write(out_filename_, marker_, size_, edgewidth_, color_):
 
 def write_all():
 	print 'observations...'
-	write(os.path.join('img', 'observations.png'), windgraphs.OBSERVATION_MARKER, 
-			windgraphs.OBSERVATION_MARKER_SIZE, windgraphs.OBSERVATION_MARKER_EDGE_WIDTH, windgraphs.OBSERVATION_COLOR)
-	for channel in windgraphs.PARSED_WEATHER_CHANNELS:
+	write(os.path.join('img', 'observations.png'), c.OBSERVATION_MARKER, 
+			c.OBSERVATION_MARKER_SIZE, c.OBSERVATION_MARKER_EDGE_WIDTH, c.OBSERVATION_COLOR)
+	for channel in c.PARSED_WEATHER_CHANNELS:
 		print '%s...' % channel
-		write(os.path.join('img', '%s.png' % channel), windgraphs.WEATHER_CHANNEL_TO_MARKER[channel], 
-				windgraphs.FORECAST_MARKER_SIZE, windgraphs.FORECAST_MARKER_EDGE_WIDTH, 
-				windgraphs.WEATHER_CHANNEL_TO_COLOR[channel])
+		write(os.path.join('img', '%s.png' % channel), c.WEATHER_CHANNEL_TO_MARKER[channel], 
+				c.FORECAST_MARKER_SIZE, c.FORECAST_MARKER_EDGE_WIDTH, 
+				c.WEATHER_CHANNEL_TO_COLOR[channel])
 
 if __name__ == '__main__':
 

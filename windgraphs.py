@@ -11,6 +11,7 @@ import matplotlib.ticker as ticker
 import pylab
 import numpy as np
 from dtpythonutil.misc import *
+import u, c
 
 # Methodology notes: 
 # Meteoblue doesn't say 'average wind' or 'gust' anywhere - it has a range eg. "19-35".  It's 
@@ -18,30 +19,6 @@ from dtpythonutil.misc import *
 # be an average - which I think is the same as all other forecast channels see 
 # things (evidence?) and I'm a little more sure is how the environment canada 
 # observations see things. 
-
-with open('PARSED_WEATHER_CHANNELS.json') as fin:
-	PARSED_WEATHER_CHANNELS = json.load(fin)
-with open('WEATHER_CHANNEL_TO_COLOR.json') as fin:
-	WEATHER_CHANNEL_TO_COLOR = json.load(fin)
-with open('WEATHER_CHANNEL_TO_MARKER.json') as fin:
-	WEATHER_CHANNEL_TO_MARKER = json.load(fin)
-with open('FORECAST_MARKER_SIZE.json') as fin:
-	FORECAST_MARKER_SIZE = json.load(fin)
-with open('FORECAST_MARKER_EDGE_WIDTH.json') as fin:
-	FORECAST_MARKER_EDGE_WIDTH = json.load(fin)
-with open('OBSERVATION_MARKER_EDGE_WIDTH.json') as fin:
-	OBSERVATION_MARKER_EDGE_WIDTH = json.load(fin)
-with open('WEATHER_CHANNEL_TO_LONG_MULTILINE_NAME.json') as fin:
-	WEATHER_CHANNEL_TO_LONG_MULTILINE_NAME = json.load(fin)
-with open('OBSERVATION_COLOR.json') as fin:
-	OBSERVATION_COLOR = json.load(fin)
-with open('OBSERVATION_MARKER.json') as fin:
-	OBSERVATION_MARKER = json.load(fin)
-with open('OBSERVATION_MARKER_SIZE.json') as fin:
-	OBSERVATION_MARKER_SIZE = json.load(fin)
-
-assert set(WEATHER_CHANNEL_TO_COLOR.keys()) == set(PARSED_WEATHER_CHANNELS) \
-		== set(WEATHER_CHANNEL_TO_LONG_MULTILINE_NAME.keys())
 
 PASSWORD = file_to_string(os.path.expanduser('~/.windgraphs/DB_PASSWORD')).strip()
 
@@ -51,16 +28,6 @@ DEV = os.path.exists('DEV')
 DEV_READ_FROM_FILES = DEV and 0
 DEV_WRITE_TO_FILES = DEV and 0
 
-METEOBLUE_DAYS = tuple(range(1, 7))
-METEOBLUE_RAW_CHANNEL_PREFIX = 'mb-day'
-METEOBLUE_DAY_TO_RAW_CHANNEL = dict((day, '%s%d' % (METEOBLUE_RAW_CHANNEL_PREFIX, day)) for day in METEOBLUE_DAYS)
-METEOBLUE_RAW_CHANNELS = METEOBLUE_DAY_TO_RAW_CHANNEL.values()
-
-# For sailfow, the list of _raw_ channel names is the same as the list of _parsed_ channel names. 
-SAILFLOW_RAW_CHANNELS = ['sf_q', 'sf_nam12', 'sf_gfs', 'sf_nam3', 'sf_cmc']
-
-RAW_CHANNELS = ['wf_reg', 'wf_sup', 'wg'] + SAILFLOW_RAW_CHANNELS + METEOBLUE_RAW_CHANNELS
-
 g_db_conn = None
 g_lock = threading.RLock()
 
@@ -69,10 +36,10 @@ def get_forecast_web_get_func(raw_forecast_channel_):
 		'wf_reg': windfinder_regular_get_web_response, 
 		'wf_sup': windfinder_super_get_web_response, 
 		'wg': windguru_get_web_response}
-	for channel in SAILFLOW_RAW_CHANNELS:
+	for channel in c.SAILFLOW_RAW_CHANNELS:
 		d[channel] = lambda: sailflow_get_web_response(raw_forecast_channel_)
-	for meteoblue_day in METEOBLUE_DAYS:
-		channel = METEOBLUE_DAY_TO_RAW_CHANNEL[meteoblue_day]
+	for meteoblue_day in c.METEOBLUE_DAYS:
+		channel = c.METEOBLUE_DAY_TO_RAW_CHANNEL[meteoblue_day]
 		d[channel] = lambda day2=meteoblue_day: meteoblue_get_web_response(day2)
 	return d[raw_forecast_channel_]
 
@@ -82,10 +49,10 @@ def get_forecast_parse_func(raw_forecast_channel_):
 		'wf_sup': windfinder_super_parse_web_response, 
 		'wg': windguru_parse_web_response 
 		}
-	for channel in SAILFLOW_RAW_CHANNELS:
+	for channel in c.SAILFLOW_RAW_CHANNELS:
 		d[channel] = lambda s__, t__, c2=channel: sailflow_parse_web_response(s__, c2, t__)
-	for meteoblue_day in METEOBLUE_DAYS:
-		channel = METEOBLUE_DAY_TO_RAW_CHANNEL[meteoblue_day]
+	for meteoblue_day in c.METEOBLUE_DAYS:
+		channel = c.METEOBLUE_DAY_TO_RAW_CHANNEL[meteoblue_day]
 		d[channel] = meteoblue_parse_web_response
 	return d[raw_forecast_channel_]
 
@@ -729,7 +696,7 @@ def get_envcan_observations_and_insert_into_db_single_month(date_, dry_run_, pri
 			print '%s total parsed observations: %d.  Num successfully inserted: %d' % (monthstr, len(parsed_observations), num_inserts)
 
 def get_all_forecasts_from_web_and_insert_into_db(force_web_get_, dont_insert_into_db_):
-	for raw_channel in RAW_CHANNELS:
+	for raw_channel in c.RAW_CHANNELS:
 		try:
 			get_forecast_from_web_and_insert_into_db(raw_channel, force_web_get_, dont_insert_into_db_)
 		except:
@@ -764,7 +731,7 @@ def sailflow_get_web_response(model_):
 	return r
 
 def meteoblue_get_web_response(day_):
-	assert day_ in METEOBLUE_DAYS
+	assert day_ in c.METEOBLUE_DAYS
 	if day_ == 1:
 		url = 'https://www.meteoblue.com/en/weather/forecast/week/billy-bishop-toronto-city-airport_canada_6301483'
 	else:
@@ -1170,7 +1137,7 @@ def get_graph_info(target_time_of_day_, weather_check_num_hours_in_advance_, end
 		observation = get_observation_from_db('gc.ca', target_t)
 		if observation is not None:
 			observations.append((em_to_datetime(target_t), observation.base_wind))
-			for channel in PARSED_WEATHER_CHANNELS:
+			for channel in c.PARSED_WEATHER_CHANNELS:
 				forecast = get_forecast_parsed_near(channel, check_weather_t, target_t)
 				if forecast is not None:
 					channel_to_forecasts[channel].append((em_to_datetime(target_t), forecast.base_wind))
@@ -1182,8 +1149,8 @@ def get_graph_info(target_time_of_day_, weather_check_num_hours_in_advance_, end
 		return [e[1] for e in run__]
 
 	# Draw "actual wind" dots: 
-	plt.plot(xvals(observations), yvals(observations), markeredgecolor=OBSERVATION_COLOR, color=OBSERVATION_COLOR, 
-			marker=OBSERVATION_MARKER, markeredgewidth=OBSERVATION_MARKER_EDGE_WIDTH, markersize=OBSERVATION_MARKER_SIZE, 
+	plt.plot(xvals(observations), yvals(observations), markeredgecolor=c.OBSERVATION_COLOR, color=c.OBSERVATION_COLOR, 
+			marker=c.OBSERVATION_MARKER, markeredgewidth=c.OBSERVATION_MARKER_EDGE_WIDTH, markersize=c.OBSERVATION_MARKER_SIZE, 
 			linestyle='none')
 
 	# Draw horizontal lines, lining up with y-axis intervals: 
@@ -1218,12 +1185,12 @@ def get_graph_info(target_time_of_day_, weather_check_num_hours_in_advance_, end
 
 	# Draw forecast channel lines and dots: 
 	for forecast_channel, forecasts in display_channel_to_forecasts.iteritems():
-		color = WEATHER_CHANNEL_TO_COLOR[forecast_channel]
+		color = c.WEATHER_CHANNEL_TO_COLOR[forecast_channel]
 		xs = xvals(forecasts)
 		ys = yvals(forecasts)
-		marker = WEATHER_CHANNEL_TO_MARKER[forecast_channel]
-		plt.plot(xs, ys, color=color, marker=marker, markeredgecolor=color, markersize=FORECAST_MARKER_SIZE, 
-				markeredgewidth=FORECAST_MARKER_EDGE_WIDTH, linestyle='none')
+		marker = c.WEATHER_CHANNEL_TO_MARKER[forecast_channel]
+		plt.plot(xs, ys, color=color, marker=marker, markeredgecolor=color, markersize=c.FORECAST_MARKER_SIZE, 
+				markeredgewidth=c.FORECAST_MARKER_EDGE_WIDTH, linestyle='none')
 
 	# Increasing the amount of domain shown, because otherwise the first and last 
 	# data points are of the left and right borders of the image, and that looks 
