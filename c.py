@@ -1,7 +1,7 @@
-import json
+import os, json
 
 def read_var_from_json_file(var_name_):
-	filename = '%s.json' % var_name_
+	filename = os.path.join('config', '%s.json' % var_name_)
 	with open(filename) as fin:
 		globals()[var_name_] = json.load(fin)
 

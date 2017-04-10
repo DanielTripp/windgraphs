@@ -10,9 +10,9 @@
 	<script src="sprintf.min.js"></script>
 	<script type="text/javascript">
 
-var WEATHER_CHANNEL_TO_LONG_MULTILINE_NAME = <?php readfile('WEATHER_CHANNEL_TO_LONG_MULTILINE_NAME.json');?>;
-var WEATHER_CHANNEL_TO_COLOR = <?php readfile('WEATHER_CHANNEL_TO_COLOR.json');?>;
-var OBSERVATION_COLOR = <?php readfile('OBSERVATION_COLOR.json');?>;
+var WEATHER_CHANNEL_TO_LONG_MULTILINE_NAME = <?php readfile('config/FORECAST_PARSED_CHANNEL_TO_LONG_MULTILINE_NAME.json');?>;
+var WEATHER_CHANNEL_TO_COLOR = <?php readfile('config/FORECAST_PARSED_CHANNEL_TO_COLOR.json');?>;
+var OBSERVATION_COLOR = <?php readfile('config/OBSERVATION_COLOR.json');?>;
 
 var WEATHER_CHANNEL_TO_SINGLE_LINE_NAME = {};
 for(var channel in WEATHER_CHANNEL_TO_LONG_MULTILINE_NAME) {
@@ -170,7 +170,7 @@ $(document).ready(initialize);
 			What time of day do you sail? <br>
 			<select id="target_time_list" required>
 				<?php 
-					foreach(explode("\n", file_get_contents('target_times.txt')) as $line) {
+					foreach(explode("\n", file_get_contents('config/target_times.txt')) as $line) {
 						if($line != "") {
 							$hour_24_str = $line;
 							$hour = intval($line); 
@@ -189,7 +189,7 @@ $(document).ready(initialize);
 			When do you check the forecast? <br>
 			<select id="weather_check_num_hours_list" required>
 				<?php 
-					foreach(explode("\n", file_get_contents('hours_in_advance.txt')) as $line) {
+					foreach(explode("\n", file_get_contents('config/hours_in_advance.txt')) as $line) {
 						if($line != "") {
 							$num_hours = intval($line);
 							if($num_hours < 72) {
@@ -207,7 +207,7 @@ $(document).ready(initialize);
 			Show data for: <br>
 			<select id="graph_domain_num_days_list" required>
 				<?php 
-					foreach(explode("\n", file_get_contents('graph_domain_num_days.txt')) as $line) {
+					foreach(explode("\n", file_get_contents('config/graph_domain_num_days.txt')) as $line) {
 						if($line != "") {
 							$graph_domain_num_days = intval($line);
 							echo "<option value=\"$graph_domain_num_days\">the last $graph_domain_num_days days</option>\n"; 
