@@ -1185,7 +1185,7 @@ def get_graph_info(target_time_of_day_, weather_check_num_hours_in_advance_, end
 
 	# Draw forecast channel lines and dots: 
 	for forecast_channel, forecasts in display_channel_to_forecasts.iteritems():
-		color = c.WEATHER_CHANNEL_TO_COLOR[forecast_channel]
+		color = c.FORECAST_PARSED_CHANNEL_TO_COLOR[forecast_channel]
 		xs = xvals(forecasts)
 		ys = yvals(forecasts)
 		marker = c.WEATHER_CHANNEL_TO_MARKER[forecast_channel]

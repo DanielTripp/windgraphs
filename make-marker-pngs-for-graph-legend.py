@@ -87,7 +87,7 @@ def write_all():
 		print '%s...' % channel
 		write(os.path.join('img', '%s.png' % channel), c.WEATHER_CHANNEL_TO_MARKER[channel], 
 				c.FORECAST_MARKER_SIZE, c.FORECAST_MARKER_EDGE_WIDTH, 
-				c.WEATHER_CHANNEL_TO_COLOR[channel])
+				c.FORECAST_PARSED_CHANNEL_TO_COLOR[channel])
 
 if __name__ == '__main__':
 
