@@ -85,7 +85,7 @@ def write_all():
 			c.OBSERVATION_MARKER_SIZE, c.OBSERVATION_MARKER_EDGE_WIDTH, c.OBSERVATION_COLOR)
 	for channel in c.FORECAST_PARSED_CHANNELS:
 		print '%s...' % channel
-		write(os.path.join('img', '%s.png' % channel), c.WEATHER_CHANNEL_TO_MARKER[channel], 
+		write(os.path.join('img', '%s.png' % channel), c.FORECAST_PARSED_CHANNEL_TO_MARKER[channel], 
 				c.FORECAST_MARKER_SIZE, c.FORECAST_MARKER_EDGE_WIDTH, 
 				c.FORECAST_PARSED_CHANNEL_TO_COLOR[channel])
 

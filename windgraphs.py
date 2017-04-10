@@ -1188,7 +1188,7 @@ def get_graph_info(target_time_of_day_, weather_check_num_hours_in_advance_, end
 		color = c.FORECAST_PARSED_CHANNEL_TO_COLOR[forecast_channel]
 		xs = xvals(forecasts)
 		ys = yvals(forecasts)
-		marker = c.WEATHER_CHANNEL_TO_MARKER[forecast_channel]
+		marker = c.FORECAST_PARSED_CHANNEL_TO_MARKER[forecast_channel]
 		plt.plot(xs, ys, color=color, marker=marker, markeredgecolor=color, markersize=c.FORECAST_MARKER_SIZE, 
 				markeredgewidth=c.FORECAST_MARKER_EDGE_WIDTH, linestyle='none')
 
