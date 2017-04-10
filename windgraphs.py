@@ -696,7 +696,7 @@ def get_envcan_observations_and_insert_into_db_single_month(date_, dry_run_, pri
 			print '%s total parsed observations: %d.  Num successfully inserted: %d' % (monthstr, len(parsed_observations), num_inserts)
 
 def get_all_forecasts_from_web_and_insert_into_db(force_web_get_, dont_insert_into_db_):
-	for raw_channel in c.RAW_CHANNELS:
+	for raw_channel in c.FORECAST_RAW_CHANNELS:
 		try:
 			get_forecast_from_web_and_insert_into_db(raw_channel, force_web_get_, dont_insert_into_db_)
 		except:

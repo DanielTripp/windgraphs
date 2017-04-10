@@ -27,5 +27,5 @@ METEOBLUE_RAW_CHANNELS = METEOBLUE_DAY_TO_RAW_CHANNEL.values()
 # For sailfow, the list of _raw_ channel names is the same as the list of _parsed_ channel names. 
 SAILFLOW_RAW_CHANNELS = ['sf_q', 'sf_nam12', 'sf_gfs', 'sf_nam3', 'sf_cmc']
 
-RAW_CHANNELS = ['wf_reg', 'wf_sup', 'wg'] + SAILFLOW_RAW_CHANNELS + METEOBLUE_RAW_CHANNELS
+FORECAST_RAW_CHANNELS = ['wf_reg', 'wf_sup', 'wg'] + SAILFLOW_RAW_CHANNELS + METEOBLUE_RAW_CHANNELS
 
