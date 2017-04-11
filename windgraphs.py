@@ -1290,6 +1290,91 @@ def get_hours_in_advance():
 def get_graph_domain_num_days():
 	return get_file_contents_as_list_of_integers('graph_domain_num_days.txt')
 
+def get_parsed_observations(channel_, min_time_, max_time_):
+	sqlstr = '''select time_retrieved, base_wind, gust_wind from wind_observations_parsed where channel = %s
+			and time_retrieved between %s and %s order by time_retrieved'''
+	curs = db_conn().cursor()
+	try:
+		curs.execute(sqlstr, [channel_, min_time_, max_time_])
+		r = []
+		for row in curs:
+			time_retrieved, base_wind, gust_wind = row
+			r.append(Observation(channel_, time_retrieved, base_wind, gust_wind))
+		return r
+	finally:
+		curs.close()
+
+def get_graph_vals_from_observations(observations_):
+	r = []
+	for observation in observations_:
+		r.append((em_to_datetime(observation.time_retrieved), observation.base_wind))
+	return r
+
+def make_observation_graph_envcan_vs_navcan():
+	main_figure = plt.figure(1)
+	fig, ax = plt.subplots()
+	fig.set_size_inches(100, 8)
+	start_date = datetime.date(2017, 1, 1)
+	end_date = datetime.date(2017, 2, 1)
+	envcan_observations = get_parsed_observations('envcan', date_to_em(start_date), date_to_em(end_date))
+	navcan_observations = get_parsed_observations('navcan', date_to_em(start_date), date_to_em(end_date))
+
+	envcan_graph_vals = get_graph_vals_from_observations(envcan_observations)
+	navcan_graph_vals = get_graph_vals_from_observations(navcan_observations)
+
+	def xvals(run__):
+		return [e[0] for e in run__]
+
+	def yvals(run__):
+		return [e[1] for e in run__]
+
+	plt.plot(xvals(navcan_graph_vals), yvals(navcan_graph_vals), markeredgecolor=(0,0,1), color=(0,0,1), 
+			marker='4', markeredgewidth=2, markersize=9, linestyle='none')
+
+	plt.plot(xvals(envcan_graph_vals), yvals(envcan_graph_vals), markeredgecolor=(0,1,0), color=(0,1,0), 
+			marker='1', markeredgewidth=2, markersize=9, linestyle='none')
+
+	# Draw horizontal lines, lining up with y-axis intervals: 
+	min_xval = min(xvals(envcan_graph_vals + navcan_graph_vals))
+	max_xval = max(xvals(envcan_graph_vals + navcan_graph_vals))
+	max_yval = max(yvals(envcan_graph_vals + navcan_graph_vals))
+	max_yval = round_up(int(math.ceil(max_yval))+5, 5)
+
+	# Increasing the amount of domain shown, because otherwise the first and last 
+	# data points are of the left and right borders of the image, and that looks 
+	# bad. 
+	x_margin = 1000*60*60*24
+	plt.xlim(em_to_datetime(datetime_to_em(min_xval)-x_margin), em_to_datetime(datetime_to_em(max_xval)+x_margin))
+
+	# Draw date labels on X-axis:
+	fig.autofmt_xdate()
+	date_format = ('%b %d %Y' if end_date < datetime.date(1990, 1, 1) else '%b %d') # Include year, for testing time frames 
+	ax.xaxis.set_major_formatter(matplotlib.dates.DateFormatter(date_format))
+	tick_datetimes = []
+	tick_datetime = datetime_round_down_to_midnight(min_xval)
+	while tick_datetime <= max_xval:
+		tick_datetimes.append(tick_datetime)
+		tick_datetime += datetime.timedelta(days=1)
+	ax.xaxis.set_major_locator(matplotlib.ticker.FixedLocator(map(pylab.date2num, tick_datetimes)))
+
+	for y in range(0, max_yval, 5):
+		plt.axhline(y, color=(0.5,0.5,0.5), alpha=0.5, linestyle='-')
+	plt.yticks(np.arange(0, max_yval+5, 5)) # Do this /after/ the axhline() calls or else the min value might not be respected. 
+
+	plt.ylim(-max_yval/15.0, max_yval)
+
+	plt.ylabel('Average wind (knots)')
+
+	buf = io.BytesIO()
+	plt.savefig(buf, bbox_inches='tight')
+	buf.seek(0)
+	png_content = buf.read()
+	png_content_base64 = base64.b64encode(png_content)
+	main_figure.clf()
+	plt.close()
+
+	u.write_png_to_tmp('observations-compare---', png_content_base64)
+
 if __name__ == '__main__':
 
 	pass
