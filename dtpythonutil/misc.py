@@ -549,6 +549,9 @@ def round_down_to_midnight(time_em_):
 	dt = datetime.datetime(dt.year, dt.month, dt.day)
 	return long(time.mktime(dt.timetuple())*1000)
 
+def datetime_round_down_to_midnight(dt_):
+	return em_to_datetime(round_down_to_midnight(datetime_to_em(dt_)))
+
 def millis_within_day_to_str(m_):
 	assert 0 <= m_ <= 1000*60*60*48 # NextBus schedules use values greater than 1000*60*60*24 for times after midnight.
 		# The TTC service day seems to start around 5:00 or 6:00 AM.
