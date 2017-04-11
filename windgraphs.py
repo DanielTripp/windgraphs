@@ -1276,7 +1276,7 @@ def write_json_file(filename_, contents_obj_):
 
 def get_file_contents_as_list_of_integers(filename_):
 	r = []
-	with open(filename_) as fin:
+	with open(os.path.join('config', filename_)) as fin:
 		for line in fin:
 			r.append(int(line.rstrip()))
 	return r
