@@ -356,6 +356,9 @@ def round_down_by_minute_step(t_em_, step_):
 	r = long(calendar.timegm(dt.timetuple())*1000)
 	return r
 
+def date_to_em(datetime_):
+	return long(time.mktime(datetime_.timetuple())*1000)
+
 def datetime_to_em(datetime_):
 	return long(time.mktime(datetime_.timetuple())*1000) + datetime_.microsecond/1000
 
