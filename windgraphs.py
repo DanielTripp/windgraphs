@@ -1120,17 +1120,11 @@ def copy_parsed_observations_for_testing(src_end_em_, dest_end_em_, time_window_
 def get_graph_width_inches(num_days_):
 	return get_range_val((15,7), (365,170), num_days_)
 
-def get_graph_info(target_time_of_day_, weather_check_num_hours_in_advance_, end_date_, num_days_):
-	target_time_of_day = datetime.time(target_time_of_day_, 00)
-
-	main_figure = plt.figure(1)
-	fig, ax = plt.subplots()
-	fig.set_size_inches(get_graph_width_inches(num_days_), 8)
-
-	days = get_days(end_date_, num_days_)
-	target_times = [datetime_to_em(datetime.datetime.combine(target_day, target_time_of_day)) for target_day in days]
-	channel_to_forecasts = defaultdict(lambda: [])
+def get_observations_and_forecasts_from_db(target_time_of_day_, weather_check_num_hours_in_advance_, 
+		end_date_, num_days_):
+	target_times = get_target_times_em(target_time_of_day_, end_date_, num_days_)
 	observations = []
+	channel_to_forecasts = defaultdict(lambda: [])
 	for target_t in target_times:
 		check_weather_t = target_t - 1000*60*60*weather_check_num_hours_in_advance_
 
@@ -1141,6 +1135,23 @@ def get_graph_info(target_time_of_day_, weather_check_num_hours_in_advance_, end
 				forecast = get_forecast_parsed_near(channel, check_weather_t, target_t)
 				if forecast is not None:
 					channel_to_forecasts[channel].append((em_to_datetime(target_t), forecast.base_wind))
+
+	return (observations, channel_to_forecasts)
+
+def get_target_times_em(target_time_of_day_, end_date_, num_days_):
+	days = get_days(end_date_, num_days_)
+	target_time_of_day = datetime.time(target_time_of_day_, 00)
+	r = [datetime_to_em(datetime.datetime.combine(target_day, target_time_of_day)) for target_day in days]
+	return r
+
+def get_graph_info(target_time_of_day_, weather_check_num_hours_in_advance_, end_date_, num_days_):
+
+	observations, channel_to_forecasts = get_observations_and_forecasts_from_db(target_time_of_day_, 
+			weather_check_num_hours_in_advance_, end_date_, num_days_)
+
+	main_figure = plt.figure(1)
+	fig, ax = plt.subplots()
+	fig.set_size_inches(get_graph_width_inches(num_days_), 8)
 
 	def xvals(run__):
 		return [e[0] for e in run__]
@@ -1183,6 +1194,8 @@ def get_graph_info(target_time_of_day_, weather_check_num_hours_in_advance_, end
 		marker = c.FORECAST_PARSED_CHANNEL_TO_MARKER[forecast_channel]
 		plt.plot(xs, ys, color=color, marker=marker, markeredgecolor=color, markersize=c.FORECAST_MARKER_SIZE, 
 				markeredgewidth=c.FORECAST_MARKER_EDGE_WIDTH, linestyle='none')
+
+	target_times = get_target_times_em(target_time_of_day_, end_date_, num_days_)
 
 	# Increasing the amount of domain shown, because otherwise the first and last 
 	# data points are of the left and right borders of the image, and that looks 
