@@ -1357,6 +1357,12 @@ def make_observation_graph_envcan_vs_navcan():
 		tick_datetime += datetime.timedelta(days=1)
 	ax.xaxis.set_major_locator(matplotlib.ticker.FixedLocator(map(pylab.date2num, tick_datetimes)))
 
+	for date1 in datetime_xrange(datetime_to_date(min_xval), datetime_to_date(max_xval), 
+				datetime.timedelta(days=1)):
+		for datetime2 in datetime_xrange(date_to_datetime(date1), date_to_datetime(date1) + datetime.timedelta(days=1), 
+				datetime.timedelta(hours=3)):
+			plt.axvline(datetime2, color=(0.5,0.5,0.5), alpha=0.5, linestyle='-')
+
 	for y in range(0, max_yval, 5):
 		plt.axhline(y, color=(0.5,0.5,0.5), alpha=0.5, linestyle='-')
 	plt.yticks(np.arange(0, max_yval+5, 5)) # Do this /after/ the axhline() calls or else the min value might not be respected. 
