@@ -1242,6 +1242,12 @@ def get_channel_to_num_forecasts(channel_to_forecasts_):
 		r[channel] = len(forecasts)
 	return r
 
+def get_stats(target_time_of_day_, weather_check_num_hours_in_advance_, end_date_, num_days_):
+	observations, channel_to_forecasts = get_observations_and_forecasts_from_db(target_time_of_day_, 
+			weather_check_num_hours_in_advance_, end_date_, num_days_)
+	r = get_forecast_channel_to_score(observations, channel_to_forecasts)
+	return r
+
 def get_forecast_channel_to_score(observations_, channel_to_forecasts_):
 	observation_datetime_to_val = {}
 	for observation in observations_:
