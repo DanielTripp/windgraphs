@@ -1276,6 +1276,12 @@ def datetime_xrange(dt1_, dt2_, timedelta_):
 		yield x
 		x += timedelta_
 
+def datetime_to_date(dt_):
+	return datetime.date(dt_.year, dt_.month, dt_.day)
+
+def date_to_datetime(dt_):
+	return datetime.datetime(dt_.year, dt_.month, dt_.day)
+
 if __name__ == '__main__':
 
 	pass
