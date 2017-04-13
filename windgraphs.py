@@ -1153,14 +1153,6 @@ def get_graph_info(target_time_of_day_, weather_check_num_hours_in_advance_, end
 			marker=c.OBSERVATION_MARKER, markeredgewidth=c.OBSERVATION_MARKER_EDGE_WIDTH, markersize=c.OBSERVATION_MARKER_SIZE, 
 			linestyle='none')
 
-	# Draw horizontal lines, lining up with y-axis intervals: 
-	min_xval = min(xvals(observations))
-	max_yval = max(yvals(observations))
-	for forecasts in channel_to_forecasts.itervalues():
-		min_xval = min(min_xval, min(xvals(forecasts)))
-		max_yval = max(max_yval, max(yvals(forecasts)))
-	max_yval = round_up(int(math.ceil(max_yval))+5, 5)
-
 	target_time_to_forecast_wind_to_channels = defaultdict(lambda: defaultdict(list))
 	for forecast_channel, forecasts in channel_to_forecasts.iteritems():
 		for forecast in forecasts:
@@ -1204,6 +1196,11 @@ def get_graph_info(target_time_of_day_, weather_check_num_hours_in_advance_, end
 	ax.xaxis.set_major_formatter(matplotlib.dates.DateFormatter(date_format))
 	ax.xaxis.set_major_locator(matplotlib.ticker.FixedLocator(
 			[pylab.date2num(em_to_datetime(x)) for x in target_times[::get_xaxis_tick_step(num_days_)]]))
+
+	max_yval = max(yvals(observations))
+	for forecasts in channel_to_forecasts.itervalues():
+		max_yval = max(max_yval, max(yvals(forecasts)))
+	max_yval = round_up(int(math.ceil(max_yval))+5, 5)
 
 	for y in range(0, max_yval, 5):
 		plt.axhline(y, color=(0.5,0.5,0.5), alpha=0.5, linestyle='-')
@@ -1334,7 +1331,6 @@ def make_observation_graph_envcan_vs_navcan():
 	plt.plot(xvals(envcan_graph_vals), yvals(envcan_graph_vals), markeredgecolor=(0,1,0), color=(0,1,0), 
 			marker='1', markeredgewidth=2, markersize=9, linestyle='none')
 
-	# Draw horizontal lines, lining up with y-axis intervals: 
 	min_xval = min(xvals(envcan_graph_vals + navcan_graph_vals))
 	max_xval = max(xvals(envcan_graph_vals + navcan_graph_vals))
 	max_yval = max(yvals(envcan_graph_vals + navcan_graph_vals))
