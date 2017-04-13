@@ -1270,6 +1270,12 @@ def now_str_iso8601():
 	dt_with_timezone = datetime.datetime.fromtimestamp(time.mktime(dt.timetuple()), local_tzinfo)
 	return dt_with_timezone.strftime('%Y-%m-%dT%H:%M:%S%z')
 
+def datetime_xrange(dt1_, dt2_, timedelta_):
+	x = dt1_
+	while x < dt2_:
+		yield x
+		x += timedelta_
+
 if __name__ == '__main__':
 
 	pass
