@@ -1126,7 +1126,7 @@ def get_graph_width_inches(num_days_):
 
 def should_channel_be_fudged_for_dst(channel_):
 	assert channel_ in c.FORECAST_PARSED_CHANNELS
-	r = channel_ in ('wf_reg', 'wg_gfs', 'wg_nam')
+	r = channel_ in ('wf_reg', 'wg_gfs', 'wg_nam', 'sf_nam12', 'sf_gfs', 'sf_cmc', 'mb')
 	return r
 
 def get_observations_and_forecasts_from_db(target_time_of_day_, weather_check_num_hours_in_advance_, 
