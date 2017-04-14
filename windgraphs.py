@@ -1200,7 +1200,7 @@ def get_xaxis_tick_step(num_days_):
 	return int(math.ceil(get_range_val((20,1.0), (40,2.0), num_days_)))
 
 def get_json_filename(target_time_, hours_in_advance_, stats_time_frame_days_):
-	r = 'graph_info___target_time_%02d___hours_in_advance_%d___stats_time_frame_days_%d.json' \
+	r = 'data___target_time_%02d___hours_in_advance_%d___stats_time_frame_days_%d.json' \
 			% (target_time_, hours_in_advance_, stats_time_frame_days_)
 	r = os.path.join(JSON_DIR, r)
 	return r

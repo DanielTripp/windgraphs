@@ -148,7 +148,7 @@ function get_img_url(target_time_, weather_check_num_hours_, end_date_, num_days
 			echo 'return sprintf("get_data.wsgi?target_time_of_day=%s&weather_check_num_hours_in_advance=%s&end_date=%s&num_days=%s", 
 					target_time_, weather_check_num_hours_, end_date_, num_days_);';
 		} else {
-			echo 'return sprintf("generated_data_files/graph_info___target_time_%02d___hours_in_advance_%d___stats_time_frame_days_%d.json", 
+			echo 'return sprintf("generated_data_files/data___target_time_%02d___hours_in_advance_%d___stats_time_frame_days_%d.json", 
 					target_time_, weather_check_num_hours_, num_days_);';
 		}
 	?>
