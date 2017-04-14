@@ -23,7 +23,7 @@ for(var channel in WEATHER_CHANNEL_TO_LONG_MULTILINE_NAME) {
 
 function initialize() {
 	init_gui_controls();
-	update_img_from_gui_controls();
+	update_view_from_gui_controls();
 }
 
 function init_gui_controls() {
@@ -39,7 +39,7 @@ function init_gui_controls() {
 }
 
 function on_gui_control_changed() {
-	update_img_from_gui_controls();
+	update_view_from_gui_controls();
 	<?php if(!$is_main_page_dynamic) { ?>
 			write_gui_control_values_to_storage();
 	<?php } ?>
@@ -51,7 +51,7 @@ function write_gui_control_values_to_storage() {
 	});
 }
 
-function update_img_from_gui_controls() {
+function update_view_from_gui_controls() {
 	var target_time = $("#target_time_list").val();
 	var weather_check_num_hours = $("#weather_check_num_hours_list").val();
 	<?php
@@ -62,10 +62,10 @@ function update_img_from_gui_controls() {
 		}
 	?>
 	var num_days = $("#stats_time_frame_days_list").val();
-	update_img(target_time, weather_check_num_hours, end_date, num_days);
+	update_view(target_time, weather_check_num_hours, end_date, num_days);
 }
 
-function update_img(target_time_, weather_check_num_hours_, end_date_, num_days_) {
+function update_view(target_time_, weather_check_num_hours_, end_date_, num_days_) {
 	var url = get_img_url(target_time_, weather_check_num_hours_, end_date_, num_days_);
 	var y_scroll_pos = $(window).scrollTop();
 	$("#img_loading").attr("src", "loading.gif");
@@ -208,7 +208,7 @@ $(document).ready(initialize);
 			?>
 			<?php
 				if($is_main_page_dynamic) {
-					echo '<button onclick="update_img_from_gui_controls()">Update</button>
+					echo '<button onclick="update_view_from_gui_controls()">Update</button>
 					<br>
 					<br>';
 				}
