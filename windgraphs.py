@@ -264,7 +264,6 @@ def windfinder_parse_web_response_by_lines(web_response_str_, parsed_channel_, t
 	Return a list of Forecast objects. 
 	The windfinder regular forecast and superforecast have different URLs but use the same HTML format. 
 	"""
-	fudge_for_dst = {'wf_reg':True, 'wf_sup':False}[parsed_channel_]
 	lines = web_response_str_.splitlines()
 	r = []
 	linei = 0
@@ -301,8 +300,6 @@ def windfinder_parse_web_response_by_lines(web_response_str_, parsed_channel_, t
 					break
 			else:
 				raise Exception()
-			if fudge_for_dst and not is_in_dst(target_datetime):
-				target_datetime += datetime.timedelta(hours=1)
 			target_datetime_em = datetime_to_em(target_datetime)
 			r.append(Forecast(parsed_channel_, time_retrieved_, target_datetime_em, windspeed, windgusts))
 		elif '<span class="units-ws">' in line:
@@ -322,9 +319,9 @@ def windfinder_parse_web_response(web_response_str_, parsed_channel_, time_retri
 	return windfinder_parse_web_response_by_lines(web_response_str_, parsed_channel_, time_retrieved_)
 
 def is_in_dst(dt_):
-	assert isinstance(dt_, datetime.datetime)
+	dt = em_to_datetime(dt_) if isinstance(dt_, long) else dt_
 	toronto_tzinfo = pytz.timezone('America/Toronto')
-	dt_with_timezone = datetime.datetime.fromtimestamp(time.mktime(dt_.timetuple()), toronto_tzinfo)
+	dt_with_timezone = datetime.datetime.fromtimestamp(time.mktime(dt.timetuple()), toronto_tzinfo)
 	dst_offset_in_seconds = dt_with_timezone.dst().total_seconds()
 	assert dst_offset_in_seconds in (0.0, 3600.0)
 	r = dst_offset_in_seconds > 0
@@ -413,10 +410,6 @@ def windguru_parse_web_response(web_response_str_, time_retrieved_):
 							def calc_datetime():
 								return datetime.datetime.strptime('%02d-%02d %02d:00 %d' % (month, day, hour, retrieved_year), '%m-%d %H:%M %Y')
 							daytetyme = calc_datetime()
-							fudge_for_dst = {'wg_gfs':True, 'wg_nam':True, 'wg_hrw':False}[weatherchannel]
-							if fudge_for_dst and not is_in_dst(daytetyme):
-								hour += 1
-								daytetyme = calc_datetime()
 							target_time = datetime_to_em(daytetyme)
 							r.append(Forecast(weatherchannel, time_retrieved_, target_time, windspeed, windgust))
 				break
@@ -928,37 +921,48 @@ def get_days(start_date_, num_days_):
 	r = r[::-1]
 	return r
 
-# TODO: make this function (and the program that calls it) loop through the raw 
-# forecasts in the db rather than times on the hour.  That will avoid these 
-# rough guesses based on a num_minutes_tolerance that won't always match / work 
-# with our web get frequency (and might not even match it right now) and also 
-# will avoid problems when one day we have a successful web get at say 
-# 10:55:05, then 11:00:00. 
-def backfill_reparse_raw_forecast_in_db(raw_weather_channel_, datestr_, fail_on_dupe_):
-	t = get_nearest_raw_forecast_time_retrieved(raw_weather_channel_, datestr_)
-	if t is None:
-		print 'No rows found'
+def get_raw_forecast_time_retrieveds(weather_channel_, start_date_incl_, end_date_excl_):
+	curs = db_conn().cursor()
+	try:
+		sqlstr = '''select time_retrieved from wind_forecasts_raw where 
+				weather_channel = %s and time_retrieved between %s and %s order by time_retrieved '''
+		cols = [weather_channel_, start_date_incl_, end_date_excl_-1]
+		curs.execute(sqlstr, cols)
+		r = []
+		for row in curs:
+			t = row[0]
+			r.append(t)
+		return r
+	finally:
+		curs.close()
+
+def delete_parsed_forecasts_in_db(raw_weather_channel_, start_date_incl_, end_date_excl_):
+	for parsed_channel in c.FORECAST_RAW_CHANNEL_TO_PARSED[raw_weather_channel_]:
+		curs = db_conn().cursor()
+		try:
+			sqlstr = '''delete from wind_forecasts_parsed where weather_channel = %s and time_retrieved between %s and %s'''
+			cols = [parsed_channel, start_date_incl_, end_date_excl_-1]
+			curs.execute(sqlstr, cols)
+		finally:
+			curs.close()
+
+def reparse_raw_forecasts_in_db(raw_weather_channel_, start_date_incl_, end_date_excl_):
+	assert isinstance(start_date_incl_, long)
+	assert isinstance(end_date_excl_, long)
+	chunk_size_millis = 1000L*60*60*24*7
+	if end_date_excl_ - start_date_incl_ > chunk_size_millis:
+		for chunk_start_date_incl in lrange(start_date_incl_, end_date_excl_, chunk_size_millis):
+			chunk_end_date_excl = chunk_start_date_incl + chunk_size_millis
+			reparse_raw_forecasts_in_db(raw_weather_channel_, chunk_start_date_incl, chunk_end_date_excl)
 	else:
-		print t
-		print em_to_str(t)
-		web_response = get_raw_forecast_from_db(raw_weather_channel_, t)
-		parse_func = get_forecast_parse_func(raw_weather_channel_)
-		forecasts = parse_func(web_response, t)
-		print 'Got %d forecasts.' % len(forecasts)
-		for forecast in forecasts:
-			print forecast
-		num_minutes_tolerance = 10
-		parsed_weather_channels = list(set([forecast.weather_channel for forecast in forecasts]))
-		if do_any_parsed_forecasts_exist_near_time_retrieved(parsed_weather_channels, t, 1000*60*num_minutes_tolerance):
-			msg = ('Some parsed forecasts near that time (parsed channels: %s, w/ time_retrieved within %d minutes of %s) '
-					+'already exist in the database.') % (parsed_weather_channels, num_minutes_tolerance, em_to_str(t))
-			if fail_on_dupe_:
-				raise Exception(msg)
-			else:
-				print msg
-		else:
+		delete_parsed_forecasts_in_db(raw_weather_channel_, start_date_incl_, end_date_excl_)
+		time_retrieveds = get_raw_forecast_time_retrieveds(raw_weather_channel_, start_date_incl_, end_date_excl_)
+		for time_retrieved in time_retrieveds:
+			print 'Reparsing %s %s...' % (raw_weather_channel_, em_to_str(time_retrieved))
+			raw_forecast_content = get_raw_forecast_from_db(raw_weather_channel_, time_retrieved)
+			parse_func = get_forecast_parse_func(raw_weather_channel_)
+			forecasts = parse_func(raw_forecast_content, time_retrieved)
 			insert_parsed_forecasts_into_db(forecasts)
-			print 'Inserted forecasts OK.'
 
 def do_any_parsed_forecasts_exist_near_time_retrieved(channels_, t_, tolerance_):
 	return do_any_forecasts_exist_near_time_retrieved('wind_forecasts_parsed', channels_, t_, tolerance_)
@@ -1120,21 +1124,36 @@ def copy_parsed_observations_for_testing(src_end_em_, dest_end_em_, time_window_
 def get_graph_width_inches(num_days_):
 	return get_range_val((15,7), (365,170), num_days_)
 
+def should_channel_be_fudged_for_dst(channel_):
+	assert channel_ in c.FORECAST_PARSED_CHANNELS
+	r = channel_ in ('wf_reg', 'wg_gfs', 'wg_nam')
+	return r
+
 def get_observations_and_forecasts_from_db(target_time_of_day_, weather_check_num_hours_in_advance_, 
-		end_date_, num_days_):
+			end_date_, num_days_):
 	target_times = get_target_times_em(target_time_of_day_, end_date_, num_days_)
 	observations = []
 	channel_to_forecasts = defaultdict(lambda: [])
-	for target_t in target_times:
-		check_weather_t = target_t - 1000*60*60*weather_check_num_hours_in_advance_
+	for gui_target_time in target_times:
+		fudged_target_time = gui_target_time - 1000*60*60
+		non_fudged_target_time = gui_target_time
 
-		observation = get_observation_from_db('envcan', target_t)
-		if observation is not None:
-			observations.append((em_to_datetime(target_t), observation.base_wind))
-			for channel in c.FORECAST_PARSED_CHANNELS:
-				forecast = get_forecast_parsed_near(channel, check_weather_t, target_t)
-				if forecast is not None:
-					channel_to_forecasts[channel].append((em_to_datetime(target_t), forecast.base_wind))
+		observation_for_fudged_target_time = get_observation_from_db('envcan', fudged_target_time)
+		if observation_for_fudged_target_time is not None:
+			observations.append((em_to_datetime(fudged_target_time), observation_for_fudged_target_time.base_wind))
+
+		observation_for_non_fudged_target_time = get_observation_from_db('envcan', non_fudged_target_time)
+		if observation_for_non_fudged_target_time is not None:
+			observations.append((em_to_datetime(non_fudged_target_time), observation_for_non_fudged_target_time.base_wind))
+
+		for channel in c.FORECAST_PARSED_CHANNELS:
+			fudge_for_dst = should_channel_be_fudged_for_dst(channel) and not is_in_dst(non_fudged_target_time)
+			real_target_time = fudged_target_time if fudge_for_dst else non_fudged_target_time
+			check_weather_time = real_target_time - 1000*60*60*weather_check_num_hours_in_advance_
+			forecast = get_forecast_parsed_near(channel, check_weather_time, real_target_time)
+			if forecast is not None:
+				channel_to_forecasts[channel].append(\
+						(em_to_datetime(gui_target_time), em_to_datetime(real_target_time), forecast.base_wind))
 
 	return (observations, channel_to_forecasts)
 
@@ -1144,96 +1163,13 @@ def get_target_times_em(target_time_of_day_, end_date_, num_days_):
 	r = [datetime_to_em(datetime.datetime.combine(target_day, target_time_of_day)) for target_day in days]
 	return r
 
-def get_graph_info(target_time_of_day_, weather_check_num_hours_in_advance_, end_date_, num_days_):
-
+def get_stats(target_time_of_day_, weather_check_num_hours_in_advance_, end_date_, num_days_):
 	observations, channel_to_forecasts = get_observations_and_forecasts_from_db(target_time_of_day_, 
 			weather_check_num_hours_in_advance_, end_date_, num_days_)
 
-	main_figure = plt.figure(1)
-	fig, ax = plt.subplots()
-	fig.set_size_inches(get_graph_width_inches(num_days_), 8)
-
-	def xvals(run__):
-		return [e[0] for e in run__]
-
-	def yvals(run__):
-		return [e[1] for e in run__]
-
-	# Draw "actual wind" dots: 
-	plt.plot(xvals(observations), yvals(observations), markeredgecolor=c.OBSERVATION_COLOR, color=c.OBSERVATION_COLOR, 
-			marker=c.OBSERVATION_MARKER, markeredgewidth=c.OBSERVATION_MARKER_EDGE_WIDTH, markersize=c.OBSERVATION_MARKER_SIZE, 
-			linestyle='none')
-
-	target_time_to_forecast_wind_to_channels = defaultdict(lambda: defaultdict(list))
-	for forecast_channel, forecasts in channel_to_forecasts.iteritems():
-		for forecast in forecasts:
-			target_time, forecast_wind = forecast
-			target_time_to_forecast_wind_to_channels[target_time][forecast_wind].append(forecast_channel)
-
-	marker_width_minutes = 420
-	# We're going to mangle the data for displaying.  We don't want to mangle the 
-	# original data because we still haven't calculated the scores from it yet.
-	display_channel_to_forecasts = copy.deepcopy(channel_to_forecasts)
-	for channel, forecasts in display_channel_to_forecasts.iteritems():
-		for i, forecast in enumerate(forecasts):
-			target_time, forecast_wind = forecast
-			channels_with_this_wind = target_time_to_forecast_wind_to_channels[target_time][forecast_wind]
-			if len(channels_with_this_wind) == 1:
-				x_offset = 0
-			elif len(channels_with_this_wind) == 2:
-				x_offset = (marker_width_minutes/2)*([-1,1][channels_with_this_wind.index(channel)])
-			else:
-				x_offset = marker_width_minutes*([-1,0,1][channels_with_this_wind.index(channel) % 3])
-			forecasts[i] = (forecast[0] + datetime.timedelta(minutes=x_offset), forecast[1])
-
-	# Draw forecast channel lines and dots: 
-	for forecast_channel, forecasts in display_channel_to_forecasts.iteritems():
-		color = c.FORECAST_PARSED_CHANNEL_TO_COLOR[forecast_channel]
-		xs = xvals(forecasts)
-		ys = yvals(forecasts)
-		marker = c.FORECAST_PARSED_CHANNEL_TO_MARKER[forecast_channel]
-		plt.plot(xs, ys, color=color, marker=marker, markeredgecolor=color, markersize=c.FORECAST_MARKER_SIZE, 
-				markeredgewidth=c.FORECAST_MARKER_EDGE_WIDTH, linestyle='none')
-
-	target_times = get_target_times_em(target_time_of_day_, end_date_, num_days_)
-
-	# Increasing the amount of domain shown, because otherwise the first and last 
-	# data points are of the left and right borders of the image, and that looks 
-	# bad. 
-	x_margin = 1000*60*60*24
-	plt.xlim(em_to_datetime(target_times[0]-x_margin), em_to_datetime(target_times[-1]+x_margin))
-
-	# Draw date labels on X-axis:
-	fig.autofmt_xdate()
-	date_format = ('%b %d %Y' if end_date_ < datetime.date(1990, 1, 1) else '%b %d') # Include year for testing time frames 
-	ax.xaxis.set_major_formatter(matplotlib.dates.DateFormatter(date_format))
-	ax.xaxis.set_major_locator(matplotlib.ticker.FixedLocator(
-			[pylab.date2num(em_to_datetime(x)) for x in target_times[::get_xaxis_tick_step(num_days_)]]))
-
-	max_yval = max(yvals(observations))
-	for forecasts in channel_to_forecasts.itervalues():
-		max_yval = max(max_yval, max(yvals(forecasts)))
-	max_yval = round_up(int(math.ceil(max_yval))+5, 5)
-
-	for y in range(0, max_yval, 5):
-		plt.axhline(y, color=(0.5,0.5,0.5), alpha=0.5, linestyle='-')
-	plt.yticks(np.arange(0, max_yval+5, 5)) # Do this /after/ the axhline() calls or else the min value might not be respected. 
-
-	plt.ylim(-max_yval/15.0, max_yval)
-
-	plt.ylabel('Average wind (knots)')
-
-	buf = io.BytesIO()
-	plt.savefig(buf, bbox_inches='tight')
-	buf.seek(0)
-	png_content = buf.read()
-	png_content_base64 = base64.b64encode(png_content)
-	main_figure.clf()
-	plt.close()
-
 	channel_to_score = get_forecast_channel_to_score(observations, channel_to_forecasts)
 
-	return {'png': png_content_base64, 'channel_to_score': channel_to_score, 
+	return {'channel_to_score': channel_to_score, 
 			'channel_to_num_forecasts': get_channel_to_num_forecasts(channel_to_forecasts)}
 
 def get_channel_to_num_forecasts(channel_to_forecasts_):
@@ -1242,24 +1178,17 @@ def get_channel_to_num_forecasts(channel_to_forecasts_):
 		r[channel] = len(forecasts)
 	return r
 
-def get_stats(target_time_of_day_, weather_check_num_hours_in_advance_, end_date_, num_days_):
-	observations, channel_to_forecasts = get_observations_and_forecasts_from_db(target_time_of_day_, 
-			weather_check_num_hours_in_advance_, end_date_, num_days_)
-	r = get_forecast_channel_to_score(observations, channel_to_forecasts)
-	return r
-
 def get_forecast_channel_to_score(observations_, channel_to_forecasts_):
-	observation_datetime_to_val = {}
+	observation_datetime_to_wind = {}
 	for observation in observations_:
-		observation_datetime_to_val[observation[0]] = observation[1]
+		observation_datetime_to_wind[observation[0]] = observation[1]
 	r = {}
 	for channel, forecasts in channel_to_forecasts_.iteritems():
 		channel_score = 0
-		for forecast in forecasts:
-			forecast_datetime, forecast_val = forecast
-			if forecast_datetime in observation_datetime_to_val:
-				observation_val = observation_datetime_to_val[forecast_datetime]
-				channel_score += (observation_val - forecast_val)**2
+		for forecast_gui_datetime, forecast_real_datetime, forecast_wind in forecasts:
+			if forecast_real_datetime in observation_datetime_to_wind:
+				observation_wind = observation_datetime_to_wind[forecast_real_datetime]
+				channel_score += (observation_wind - forecast_wind)**2
 		if forecasts:
 			channel_score /= len(forecasts)
 			r[channel] = channel_score

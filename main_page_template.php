@@ -68,19 +68,15 @@ function update_img_from_gui_controls() {
 function update_img(target_time_, weather_check_num_hours_, end_date_, num_days_) {
 	var url = get_img_url(target_time_, weather_check_num_hours_, end_date_, num_days_);
 	var y_scroll_pos = $(window).scrollTop();
-	$("#img_graph").attr("src", "loading.gif");
+	$("#img_loading").attr("src", "loading.gif");
 	$("#p_info").html('');
 	$.ajax({url:url, async:true, 
 		error: function(jqXHR__, textStatus__, errorThrown__) {
-			$("#img_graph").attr("src", "error.png");
+			$("#img_loading").attr("src", "error.png");
 			update_p_info_with_error(textStatus__, errorThrown__);
 		}, 
 		success: function(data__, textStatus__, jqXHR__) {
-			$("#img_graph").attr("src", "");
-			var png_content_base64 = data__['png'];
-			var inline_img = "data:image/png;base64,"+png_content_base64;
-			$("#img_graph").attr("src", inline_img);
-			update_img_legend(Object.keys(data__['channel_to_score']).sort());
+			$("#img_loading").attr("src", "");
 			update_p_info(data__['channel_to_score'], data__['channel_to_num_forecasts']);
 			$(window).scrollTop(y_scroll_pos);
 		}
@@ -133,7 +129,7 @@ function update_p_info(channel_to_score_, channel_to_num_forecasts_) {
 		});
 	html += '<table><tr><th valign="top" style="text-align:left">Forecast source</th>'
 			+'<th>"Mean Squared Error" score<br>(Lower = more accurate)</th>'
-			+'<th>Number of forecasts<br>present in this graph</th></tr>';
+			+'<th valign="top">Number of forecasts found</th></tr>';
 	channels.forEach(function(channel) {
 		var score = channel_to_score_[channel];
 		var num_forecasts = channel_to_num_forecasts_[channel];
@@ -149,7 +145,7 @@ function update_p_info(channel_to_score_, channel_to_num_forecasts_) {
 function get_img_url(target_time_, weather_check_num_hours_, end_date_, num_days_) {
 	<?php 
 		if($is_main_page_dynamic) {
-			echo 'return sprintf("get_graph_info.wsgi?target_time_of_day=%s&weather_check_num_hours_in_advance=%s&end_date=%s&num_days=%s", 
+			echo 'return sprintf("get_stats.wsgi?target_time_of_day=%s&weather_check_num_hours_in_advance=%s&end_date=%s&num_days=%s", 
 					target_time_, weather_check_num_hours_, end_date_, num_days_);';
 		} else {
 			echo 'return sprintf("static_graph_info/graph_info___target_time_%02d___hours_in_advance_%d___graph_domain_num_days_%d.json", 
@@ -166,8 +162,7 @@ $(document).ready(initialize);
 		<h2>Wind forecasts vs. actual wind - Toronto Islands</h2>
 		<br>
 		<div>
-			<div style="float: left; width: 15%">
-			What time of day do you sail? <br>
+			What time of day do you sail? 
 			<select id="target_time_list" required>
 				<?php 
 					foreach(explode("\n", file_get_contents('config/target_times.txt')) as $line) {
@@ -186,7 +181,7 @@ $(document).ready(initialize);
 			</select>
 			<br>
 			<br>
-			When do you check the forecast? <br>
+			When do you check the forecast? 
 			<select id="weather_check_num_hours_list" required>
 				<?php 
 					foreach(explode("\n", file_get_contents('config/hours_in_advance.txt')) as $line) {
@@ -204,7 +199,7 @@ $(document).ready(initialize);
 			</select>
 			<br>
 			<br>
-			Show data for: <br>
+			Show data for: 
 			<select id="graph_domain_num_days_list" required>
 				<?php 
 					foreach(explode("\n", file_get_contents('config/graph_domain_num_days.txt')) as $line) {
@@ -219,7 +214,7 @@ $(document).ready(initialize);
 			<br>
 			<?php
 				if($is_main_page_dynamic) {
-					echo 'Graph end date<br>(In yyyymmdd format, or "today"): <br>
+					echo 'Graph end date (In yyyymmdd format, or "today"): 
 					<input id="end_date_field" type="text" value="today"></input>
 					<br>
 					<br>';
@@ -232,27 +227,29 @@ $(document).ready(initialize);
 					<br>';
 				}
 			?>
-			</div>
+			<!--
 			<div style="float: right;">
 				<img src="blank_1x629.gif">
 			</div>
-			<div style="float: right; overflow:scroll; width:80%;">
-				<img id="img_graph" src="">
-			</div>
-			<div style="float: right; width:80%;">
-				<p id="p_img_legend"/>
-			</div>
+			-->
 			<br style="clear: both;" />
 		</div>
 		<br>
 		<div>
+			<br>
+			<img id="img_loading" src="">
+			<br>
 			<div style="float: left;">
+				<br>
+				<h3>Statistics:</h3>
 				<p id="p_info"/>
 			</div>
+			<!-- tdr 
 			<div style="float: right; visibility:hidden;">
 				1<br> 2<br> 3<br> 4<br> 5<br> 6<br> 7<br> 8<br> 9<br> 10<br>
 				1<br> 2<br> 3<br> 4<br> 5<br> 6<br> 7<br> 8<br> 9<br> 10<br>
 			</div>
+			-->
 		</div>
 	</body>
 </html>

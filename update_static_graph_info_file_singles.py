@@ -7,7 +7,7 @@ from dtpythonutil.misc import *
 def make_single_file(target_time_, hours_in_advance_, graph_domain_num_days_):
 	graph_end_date = datetime.date.today()
 	json_filename = windgraphs.get_json_filename(target_time_, hours_in_advance_, graph_domain_num_days_)
-	graph_info = windgraphs.get_graph_info(
+	graph_info = windgraphs.get_stats(
 			target_time, hours_in_advance, graph_end_date, graph_domain_num_days)
 	windgraphs.write_json_file(json_filename, graph_info)
 

@@ -29,3 +29,23 @@ SAILFLOW_RAW_CHANNELS = ['sf_q', 'sf_nam12', 'sf_gfs', 'sf_nam3', 'sf_cmc']
 
 FORECAST_RAW_CHANNELS = ['wf_reg', 'wf_sup', 'wg'] + SAILFLOW_RAW_CHANNELS + METEOBLUE_RAW_CHANNELS
 
+FORECAST_RAW_CHANNEL_TO_PARSED = {
+	'wf_reg': ['wf_reg'], 
+	'wf_sup': ['wf_sup'], 
+	'wg': ['wg_nam', 'wg_gfs', 'wg_hrw'], 
+ 	'sf_q': ['sf_q'], 
+	'sf_nam12': ['sf_nam12'], 
+	'sf_gfs': ['sf_gfs'], 
+	'sf_nam3': ['sf_nam3'], 
+	'sf_cmc': ['sf_cmc'],
+	'mb-day1': ['mb'], 
+	'mb-day2': ['mb'], 
+	'mb-day3': ['mb'], 
+	'mb-day4': ['mb'], 
+	'mb-day5': ['mb'], 
+	'mb-day6': ['mb']
+}
+
+assert set(FORECAST_RAW_CHANNEL_TO_PARSED.keys()) == set(FORECAST_RAW_CHANNELS)
+assert set(sum(FORECAST_RAW_CHANNEL_TO_PARSED.values(), [])) == set(FORECAST_PARSED_CHANNELS)
+

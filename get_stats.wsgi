@@ -22,7 +22,7 @@ def application(environ, start_response):
 			end_date = datetime.date.today()
 		else:
 			end_date = datetime.date(int(end_date[:4]), int(end_date[4:6]), int(end_date[6:8]))
-		r = windgraphs.get_graph_info(target_time_of_day, weather_check_num_hours_in_advance, end_date, num_days)
+		r = windgraphs.get_stats(target_time_of_day, weather_check_num_hours_in_advance, end_date, num_days)
 
 		response_headers = [('Content-type', 'application/json')]
 		start_response('200 OK', response_headers)

@@ -15,7 +15,7 @@ else:
 	s = sys.argv[4]
 	end_date = datetime.date(int(s[:4]), int(s[4:6]), int(s[6:8]))
 
-stats = windgraphs.get_stats(target_time, hours_in_advance, end_date, graph_domain_num_days) 
+stats = windgraphs.get_stats(target_time, hours_in_advance, end_date, graph_domain_num_days)['channel_to_score']
 
 pprint.pprint(stats)
 
