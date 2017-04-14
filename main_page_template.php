@@ -91,22 +91,6 @@ function get_legend_forecast_img_filename(channel_) {
 	return sprintf('img/%s.png', channel_);
 }
 
-function update_img_legend(channels_) {
-	var spaces = '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ';
-	var html = '<font size="+1">';
-	html += sprintf('<span style="white-space: pre"><img src="%s"/><font color="%s"><font size="+2">'
-			+'&nbsp;Actual&nbsp;wind</font></font></span>%s', 
-			get_legend_observation_img_filename(), OBSERVATION_COLOR, spaces);
-	channels_.forEach(function(channel) {
-		var channel_long_name = WEATHER_CHANNEL_TO_SINGLE_LINE_NAME[channel];
-		var channel_color = WEATHER_CHANNEL_TO_COLOR[channel];
-		html += sprintf('<font color="%s"><span style="white-space: pre"><img src="%s"/> %s</span></font>%s', 
-				channel_color, get_legend_forecast_img_filename(channel), channel_long_name, spaces);
-	});
-	html += "</font>";
-	$("#p_img_legend").html(html);
-}
-
 function update_p_info_with_error(text_status_, error_thrown_) {
 	var html = sprintf('<pre>%s\n%s</pre>', text_status_, error_thrown_);
 	$("#p_info").html(html);
