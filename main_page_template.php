@@ -232,11 +232,9 @@ $(document).ready(initialize);
 		<br>
 		<div>
 			<br>
-			<img id="img_loading" src="">
-			<br>
 			<div style="float: left;">
 				<br>
-				<h3>Statistics:</h3>
+				<img id="img_loading" src="">
 				<p id="p_info"/>
 			</div>
 		</div>
