@@ -10,39 +10,25 @@
 	<script src="sprintf.min.js"></script>
 	<script type="text/javascript">
 
-var WEATHER_CHANNEL_TO_LONG_MULTILINE_NAME = <?php readfile('config/FORECAST_PARSED_CHANNEL_TO_LONG_MULTILINE_NAME.json');?>;
-var WEATHER_CHANNEL_TO_COLOR = <?php readfile('config/FORECAST_PARSED_CHANNEL_TO_COLOR.json');?>;
-var OBSERVATION_COLOR = <?php readfile('config/OBSERVATION_COLOR.json');?>;
-
-var WEATHER_CHANNEL_TO_SINGLE_LINE_NAME = {};
-for(var channel in WEATHER_CHANNEL_TO_LONG_MULTILINE_NAME) {
-	var multiline_name = WEATHER_CHANNEL_TO_LONG_MULTILINE_NAME[channel];
-	var single_line_name = multiline_name.replace(/\n/g, ' ').replace(/ /g, '&nbsp;');
-	WEATHER_CHANNEL_TO_SINGLE_LINE_NAME[channel] = single_line_name;
-}
-
 function initialize() {
 	init_gui_controls();
 	update_view_from_gui_controls();
 }
 
 function init_gui_controls() {
-	<?php if(!$is_main_page_dynamic) { ?>
-		["#target_time_list", "#weather_check_num_hours_list", "#stats_time_frame_days_list"].forEach(function(ctrl_name) {
-			var oldVal = sessionStorage.getItem(ctrl_name);
-			if(oldVal != null) {
-				$(ctrl_name).val(oldVal);
-			}
+	["#target_time_list", "#weather_check_num_hours_list", "#stats_time_frame_days_list"].forEach(function(ctrl_name) {
+		var oldVal = sessionStorage.getItem(ctrl_name);
+		if(oldVal != null) {
+			$(ctrl_name).val(oldVal);
+		}
+		<?php if(!$is_main_page_dynamic) { ?>
 			$(ctrl_name).change(on_gui_control_changed);
-		});
-	<?php } ?>
+		<?php } ?>
+	});
 }
 
 function on_gui_control_changed() {
 	update_view_from_gui_controls();
-	<?php if(!$is_main_page_dynamic) { ?>
-			write_gui_control_values_to_storage();
-	<?php } ?>
 }
 
 function write_gui_control_values_to_storage() {
@@ -52,6 +38,7 @@ function write_gui_control_values_to_storage() {
 }
 
 function update_view_from_gui_controls() {
+	write_gui_control_values_to_storage();
 	var target_time = $("#target_time_list").val();
 	var weather_check_num_hours = $("#weather_check_num_hours_list").val();
 	<?php
@@ -77,7 +64,7 @@ function update_view(target_time_, weather_check_num_hours_, end_date_, num_days
 		}, 
 		success: function(data__, textStatus__, jqXHR__) {
 			$("#img_loading").attr("src", "");
-			update_p_info(data__['channel_to_score'], data__['channel_to_num_forecasts']);
+			update_p_info(data__['html']);
 			$(window).scrollTop(y_scroll_pos);
 		}
 	});
@@ -96,34 +83,8 @@ function update_p_info_with_error(text_status_, error_thrown_) {
 	$("#p_info").html(html);
 }
 
-function update_p_info(channel_to_score_, channel_to_num_forecasts_) {
-	var html = '';
-	var channels = Object.keys(channel_to_score_);
-	channels.sort(function(a__, b__) {
-			var a_score = channel_to_score_[a__], b_score = channel_to_score_[b__];
-			if(a_score == b_score) {
-				return 0;
-			} else if(a_score == null ^ b_score == null) {
-				return (a_score == null ? 1 : -1);
-			} else if(a_score < b_score) {
-				return -1;
-			} else {
-				return 1;
-			}
-		});
-	html += '<table style="border-spacing:7mm 1mm"><tr><th valign="top" style="text-align:left">Forecast source</th>'
-			+'<th>"Mean Squared Error" score<br>(Lower = more accurate)</th>'
-			+'<th valign="top">Number of forecasts found</th></tr>';
-	channels.forEach(function(channel) {
-		var score = channel_to_score_[channel];
-		var num_forecasts = channel_to_num_forecasts_[channel];
-		var channel_long_name = WEATHER_CHANNEL_TO_SINGLE_LINE_NAME[channel];
-		var color = WEATHER_CHANNEL_TO_COLOR[channel];
-		html += sprintf('<tr><td><font color="%s">%s</td><td style="text-align:center">%s</td><td style="text-align:center">%s</td></tr>', 
-				color, channel_long_name, score==null ? '-' : score, num_forecasts);
-	});
-	html += '</table>';
-	$("#p_info").html(html);
+function update_p_info(html_) {
+	$("#p_info").html(html_);
 }
 
 function get_img_url(target_time_, weather_check_num_hours_, end_date_, num_days_) {

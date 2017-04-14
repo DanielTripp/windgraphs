@@ -17,7 +17,10 @@ else:
 
 data = windgraphs.get_data(target_time, hours_in_advance, end_date, stats_time_frame_days)
 
+html = data['html']
 pprint.pprint(data)
+print 
+print html
 
 
 

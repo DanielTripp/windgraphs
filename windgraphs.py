@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 
 import sys, urllib2, json, pprint, re, datetime, os, threading, traceback, io, math, base64, StringIO, csv, tempfile, stat, random, copy
+from xml.etree import ElementTree
+import xml.dom.minidom
 import dateutil.parser, dateutil.tz
 import BeautifulSoup, psycopg2, pytz
 import matplotlib
@@ -1172,14 +1174,43 @@ def get_target_times_em(target_time_of_day_, end_date_, num_days_):
 	r = [datetime_to_em(datetime.datetime.combine(day, tyme)) for tyme in times for day in days]
 	return r
 
+def get_html(channel_to_score_, channel_to_num_forecasts_):
+	div = ElementTree.Element('div')
+	table = ElementTree.SubElement(div, 'table', {'style':'border-spacing:7mm 1mm'})
+	table_header_row = ElementTree.SubElement(table, 'tr')
+	ElementTree.SubElement(table_header_row, 'th', {'valign':'top', 'style':'text-align:left'}).text = 'Forecast source'
+	h2 = ElementTree.SubElement(table_header_row, 'th')
+	h2.text = '"Mean Squared Error" score'
+	ElementTree.SubElement(h2, 'br').tail = '(Lower = more accurate)'
+	ElementTree.SubElement(table_header_row, 'th', {'valign':'top'}).text = 'Number of forecasts found'
+	channels_sorted_by_score = sorted(channel_to_score_.keys(), key=lambda c: channel_to_score_[c] or sys.maxint)
+	for channel in channels_sorted_by_score:
+		score = channel_to_score_[channel]
+		num_forecasts = channel_to_num_forecasts_[channel]
+		channel_long_name = c.FORECAST_PARSED_CHANNEL_TO_SINGLE_LINE_HTML_NAME[channel]
+		color = c.FORECAST_PARSED_CHANNEL_TO_COLOR[channel]
+		tr = ElementTree.SubElement(table, 'tr')
+		ElementTree.SubElement(ElementTree.SubElement(tr, 'td'), 'font', {'color':color}).text = channel_long_name
+		ElementTree.SubElement(tr, 'td', {'style':'text-align:center'}).text = '-' if score is None else str(score)
+		ElementTree.SubElement(tr, 'td', {'style':'text-align:center'}).text = str(num_forecasts)
+	r = toprettyxml_ElementTree(div)
+	return r
+
+def toprettyxml_ElementTree(et_):
+	r = xml.dom.minidom.parseString(ElementTree.tostring(et_)).toprettyxml()
+	return r
+
 def get_data(target_time_of_day_, weather_check_num_hours_in_advance_, end_date_, num_days_):
 	observations, channel_to_forecasts = get_observations_and_forecasts_from_db(target_time_of_day_, 
 			weather_check_num_hours_in_advance_, end_date_, num_days_)
 
 	channel_to_score = get_forecast_channel_to_score(observations, channel_to_forecasts)
+	channel_to_num_forecasts = get_channel_to_num_forecasts(channel_to_forecasts)
+	html = get_html(channel_to_score, channel_to_num_forecasts)
 
 	return {'channel_to_score': channel_to_score, 
-			'channel_to_num_forecasts': get_channel_to_num_forecasts(channel_to_forecasts)}
+			'channel_to_num_forecasts': channel_to_num_forecasts, 
+			'html': html}
 
 def get_channel_to_num_forecasts(channel_to_forecasts_):
 	r = {}
