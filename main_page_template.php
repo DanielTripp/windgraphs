@@ -227,11 +227,6 @@ $(document).ready(initialize);
 					<br>';
 				}
 			?>
-			<!--
-			<div style="float: right;">
-				<img src="blank_1x629.gif">
-			</div>
-			-->
 			<br style="clear: both;" />
 		</div>
 		<br>
@@ -244,12 +239,6 @@ $(document).ready(initialize);
 				<h3>Statistics:</h3>
 				<p id="p_info"/>
 			</div>
-			<!-- tdr 
-			<div style="float: right; visibility:hidden;">
-				1<br> 2<br> 3<br> 4<br> 5<br> 6<br> 7<br> 8<br> 9<br> 10<br>
-				1<br> 2<br> 3<br> 4<br> 5<br> 6<br> 7<br> 8<br> 9<br> 10<br>
-			</div>
-			-->
 		</div>
 	</body>
 </html>
