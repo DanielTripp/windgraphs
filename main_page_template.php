@@ -127,7 +127,7 @@ function update_p_info(channel_to_score_, channel_to_num_forecasts_) {
 				return 1;
 			}
 		});
-	html += '<table><tr><th valign="top" style="text-align:left">Forecast source</th>'
+	html += '<table style="border-spacing:7mm 1mm"><tr><th valign="top" style="text-align:left">Forecast source</th>'
 			+'<th>"Mean Squared Error" score<br>(Lower = more accurate)</th>'
 			+'<th valign="top">Number of forecasts found</th></tr>';
 	channels.forEach(function(channel) {
