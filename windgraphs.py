@@ -1199,9 +1199,9 @@ def get_forecast_channel_to_score(observations_, channel_to_forecasts_):
 def get_xaxis_tick_step(num_days_):
 	return int(math.ceil(get_range_val((20,1.0), (40,2.0), num_days_)))
 
-def get_json_filename(target_time_, hours_in_advance_, graph_domain_num_days_):
-	r = 'graph_info___target_time_%02d___hours_in_advance_%d___graph_domain_num_days_%d.json' \
-			% (target_time_, hours_in_advance_, graph_domain_num_days_)
+def get_json_filename(target_time_, hours_in_advance_, stats_time_frame_days_):
+	r = 'graph_info___target_time_%02d___hours_in_advance_%d___stats_time_frame_days_%d.json' \
+			% (target_time_, hours_in_advance_, stats_time_frame_days_)
 	r = os.path.join(JSON_DIR, r)
 	return r
 
@@ -1232,8 +1232,8 @@ def get_target_times():
 def get_hours_in_advance():
 	return get_file_contents_as_list_of_integers('hours_in_advance.txt')
 
-def get_graph_domain_num_days():
-	return get_file_contents_as_list_of_integers('graph_domain_num_days.txt')
+def get_stats_time_frame_days():
+	return get_file_contents_as_list_of_integers('stats_time_frame_days.txt')
 
 def get_parsed_observations(channel_, min_time_, max_time_):
 	sqlstr = '''select time_retrieved, base_wind, gust_wind from wind_observations_parsed where channel = %s

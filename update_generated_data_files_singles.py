@@ -4,11 +4,11 @@ import sys, datetime, os, json, time, traceback
 import windgraphs
 from dtpythonutil.misc import *
 
-def make_single_file(target_time_, hours_in_advance_, graph_domain_num_days_):
+def make_single_file(target_time_, hours_in_advance_, stats_time_frame_days_):
 	graph_end_date = datetime.date.today()
-	json_filename = windgraphs.get_json_filename(target_time_, hours_in_advance_, graph_domain_num_days_)
+	json_filename = windgraphs.get_json_filename(target_time_, hours_in_advance_, stats_time_frame_days_)
 	graph_info = windgraphs.get_data(
-			target_time, hours_in_advance, graph_end_date, graph_domain_num_days)
+			target_time, hours_in_advance, graph_end_date, stats_time_frame_days)
 	windgraphs.write_json_file(json_filename, graph_info)
 
 def get_vals(arg_, all_):
@@ -21,9 +21,9 @@ if __name__ == '__main__':
 
 	target_times = get_vals(sys.argv[1], windgraphs.get_target_times())
 	hours_in_advances = get_vals(sys.argv[2], windgraphs.get_hours_in_advance())
-	graph_domain_num_dayses = get_vals(sys.argv[3], windgraphs.get_graph_domain_num_days())
+	stats_time_frame_dayses = get_vals(sys.argv[3], windgraphs.get_stats_time_frame_days())
 	for target_time in target_times:
 		for hours_in_advance in hours_in_advances:
-			for graph_domain_num_days in graph_domain_num_dayses:
-				make_single_file(target_time, hours_in_advance, graph_domain_num_days)
+			for stats_time_frame_days in stats_time_frame_dayses:
+				make_single_file(target_time, hours_in_advance, stats_time_frame_days)
 

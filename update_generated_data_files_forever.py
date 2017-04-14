@@ -11,17 +11,17 @@ def make_all_files_if_out_of_date():
 	graph_end_date = datetime.date.today()
 	for target_time in windgraphs.get_target_times():
 		for hours_in_advance in windgraphs.get_hours_in_advance():
-			for graph_domain_num_days in windgraphs.get_graph_domain_num_days():
+			for stats_time_frame_days in windgraphs.get_stats_time_frame_days():
 				try:
-					json_filename = windgraphs.get_json_filename(target_time, hours_in_advance, graph_domain_num_days)
+					json_filename = windgraphs.get_json_filename(target_time, hours_in_advance, stats_time_frame_days)
 					if is_file_out_of_date(json_filename):
 						graph_info = windgraphs.get_data(
-								target_time, hours_in_advance, graph_end_date, graph_domain_num_days)
+								target_time, hours_in_advance, graph_end_date, stats_time_frame_days)
 						windgraphs.write_json_file(json_filename, graph_info)
 				except Exception:
 					print >> sys.stderr, now_str(), \
-							'Exception while making file.  Args: target_time=%d, hours_in_advance=%d, graph_domain_num_days=%d' \
-							% (target_time, hours_in_advance, graph_domain_num_days)
+							'Exception while making file.  Args: target_time=%d, hours_in_advance=%d, stats_time_frame_days=%d' \
+							% (target_time, hours_in_advance, stats_time_frame_days)
 					traceback.print_exc()
 
 if __name__ == '__main__':

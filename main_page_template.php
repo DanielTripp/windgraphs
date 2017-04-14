@@ -28,7 +28,7 @@ function initialize() {
 
 function init_gui_controls() {
 	<?php if(!$is_main_page_dynamic) { ?>
-		["#target_time_list", "#weather_check_num_hours_list", "#graph_domain_num_days_list"].forEach(function(ctrl_name) {
+		["#target_time_list", "#weather_check_num_hours_list", "#stats_time_frame_days_list"].forEach(function(ctrl_name) {
 			var oldVal = sessionStorage.getItem(ctrl_name);
 			if(oldVal != null) {
 				$(ctrl_name).val(oldVal);
@@ -46,7 +46,7 @@ function on_gui_control_changed() {
 }
 
 function write_gui_control_values_to_storage() {
-	["#target_time_list", "#weather_check_num_hours_list", "#graph_domain_num_days_list"].forEach(function(ctrl_name) {
+	["#target_time_list", "#weather_check_num_hours_list", "#stats_time_frame_days_list"].forEach(function(ctrl_name) {
 		sessionStorage.setItem(ctrl_name, $(ctrl_name).val());
 	});
 }
@@ -61,7 +61,7 @@ function update_img_from_gui_controls() {
 			echo 'var end_date = null;';
 		}
 	?>
-	var num_days = $("#graph_domain_num_days_list").val();
+	var num_days = $("#stats_time_frame_days_list").val();
 	update_img(target_time, weather_check_num_hours, end_date, num_days);
 }
 
@@ -148,7 +148,7 @@ function get_img_url(target_time_, weather_check_num_hours_, end_date_, num_days
 			echo 'return sprintf("get_data.wsgi?target_time_of_day=%s&weather_check_num_hours_in_advance=%s&end_date=%s&num_days=%s", 
 					target_time_, weather_check_num_hours_, end_date_, num_days_);';
 		} else {
-			echo 'return sprintf("generated_data_files/graph_info___target_time_%02d___hours_in_advance_%d___graph_domain_num_days_%d.json", 
+			echo 'return sprintf("generated_data_files/graph_info___target_time_%02d___hours_in_advance_%d___stats_time_frame_days_%d.json", 
 					target_time_, weather_check_num_hours_, num_days_);';
 		}
 	?>
@@ -200,12 +200,12 @@ $(document).ready(initialize);
 			<br>
 			<br>
 			Show data for: 
-			<select id="graph_domain_num_days_list" required>
+			<select id="stats_time_frame_days_list" required>
 				<?php 
-					foreach(explode("\n", file_get_contents('config/graph_domain_num_days.txt')) as $line) {
+					foreach(explode("\n", file_get_contents('config/stats_time_frame_days.txt')) as $line) {
 						if($line != "") {
-							$graph_domain_num_days = intval($line);
-							echo "<option value=\"$graph_domain_num_days\">the last $graph_domain_num_days days</option>\n"; 
+							$stats_time_frame_days = intval($line);
+							echo "<option value=\"$stats_time_frame_days\">the last $stats_time_frame_days days</option>\n"; 
 						}
 					}
 				?>
