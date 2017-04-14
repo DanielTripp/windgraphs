@@ -169,7 +169,9 @@ $(document).ready(initialize);
 						if($line != "") {
 							$hour_24_str = $line;
 							$hour = intval($line); 
-							if($hour > 12) {
+							if($hour == -1) {
+								$display_str = "Any time of day";
+							} else if($hour > 12) {
 								$display_str = sprintf("%02d:00 PM", $hour-12);
 							} else {
 								$display_str = sprintf("%02d:00 AM", $hour);

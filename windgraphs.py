@@ -1131,6 +1131,9 @@ def should_channel_be_fudged_for_dst(channel_):
 
 def get_observations_and_forecasts_from_db(target_time_of_day_, weather_check_num_hours_in_advance_, 
 			end_date_, num_days_):
+	assert target_time_of_day_ in get_target_times()
+	assert weather_check_num_hours_in_advance_ in get_hours_in_advance()
+	assert num_days_ in get_stats_time_frame_days()
 	target_times = get_target_times_em(target_time_of_day_, end_date_, num_days_)
 	observations = []
 	channel_to_forecasts = defaultdict(lambda: [])
@@ -1157,10 +1160,16 @@ def get_observations_and_forecasts_from_db(target_time_of_day_, weather_check_nu
 
 	return (observations, channel_to_forecasts)
 
+# param target_time_of_day_ -1 means all times 
 def get_target_times_em(target_time_of_day_, end_date_, num_days_):
+	assert target_time_of_day_ in get_target_times()
 	days = get_days(end_date_, num_days_)
-	target_time_of_day = datetime.time(target_time_of_day_, 00)
-	r = [datetime_to_em(datetime.datetime.combine(target_day, target_time_of_day)) for target_day in days]
+	if target_time_of_day_ == -1:
+		times = [datetime.time(t, 00) for t in get_target_times() if t != -1]
+	else:
+		times = [datetime.time(target_time_of_day_, 00)]
+	r = []
+	r = [datetime_to_em(datetime.datetime.combine(day, tyme)) for tyme in times for day in days]
 	return r
 
 def get_data(target_time_of_day_, weather_check_num_hours_in_advance_, end_date_, num_days_):
