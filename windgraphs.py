@@ -1163,7 +1163,7 @@ def get_target_times_em(target_time_of_day_, end_date_, num_days_):
 	r = [datetime_to_em(datetime.datetime.combine(target_day, target_time_of_day)) for target_day in days]
 	return r
 
-def get_stats(target_time_of_day_, weather_check_num_hours_in_advance_, end_date_, num_days_):
+def get_data(target_time_of_day_, weather_check_num_hours_in_advance_, end_date_, num_days_):
 	observations, channel_to_forecasts = get_observations_and_forecasts_from_db(target_time_of_day_, 
 			weather_check_num_hours_in_advance_, end_date_, num_days_)
 

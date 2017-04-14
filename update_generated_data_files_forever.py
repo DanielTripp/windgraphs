@@ -15,7 +15,7 @@ def make_all_files_if_out_of_date():
 				try:
 					json_filename = windgraphs.get_json_filename(target_time, hours_in_advance, graph_domain_num_days)
 					if is_file_out_of_date(json_filename):
-						graph_info = windgraphs.get_stats(
+						graph_info = windgraphs.get_data(
 								target_time, hours_in_advance, graph_end_date, graph_domain_num_days)
 						windgraphs.write_json_file(json_filename, graph_info)
 				except Exception:
