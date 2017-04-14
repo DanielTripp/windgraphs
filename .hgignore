@@ -2,6 +2,6 @@ syntax: glob
 *.swp
 *.pyc
 *.pyo
-static_graph_info
+generated_data_files
 profiler-output
 tmp

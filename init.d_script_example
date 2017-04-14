@@ -10,7 +10,7 @@
 ### END INIT INFO
 
 dir="/var/www-danieltripp.ca/windgraphs"
-cmd="./update_static_graph_info_files_forever.py"
+cmd="./update_generated_data_files_forever.py"
 user="dt"
 
 name=`basename $0`

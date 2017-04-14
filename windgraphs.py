@@ -22,7 +22,7 @@ import u, c
 
 PASSWORD = file_to_string(os.path.expanduser('~/.windgraphs/DB_PASSWORD')).strip()
 
-JSON_DIR = 'static_graph_info'
+JSON_DIR = 'generated_data_files'
 
 DEV = os.path.exists('DEV')
 DEV_READ_FROM_FILES = DEV and 0
