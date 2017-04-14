@@ -5,11 +5,11 @@ import windgraphs
 from dtpythonutil.misc import *
 
 def make_single_file(target_time_, hours_in_advance_, stats_time_frame_days_):
-	graph_end_date = datetime.date.today()
+	data_end_date = datetime.date.today()
 	json_filename = windgraphs.get_json_filename(target_time_, hours_in_advance_, stats_time_frame_days_)
-	graph_info = windgraphs.get_data(
-			target_time, hours_in_advance, graph_end_date, stats_time_frame_days)
-	windgraphs.write_json_file(json_filename, graph_info)
+	data = windgraphs.get_data(
+			target_time, hours_in_advance, data_end_date, stats_time_frame_days)
+	windgraphs.write_json_file(json_filename, data)
 
 def get_vals(arg_, all_):
 	if arg_ == 'all':
