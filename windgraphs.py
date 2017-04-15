@@ -1193,6 +1193,8 @@ def get_html(channel_to_score_, channel_to_num_forecasts_):
 		ElementTree.SubElement(ElementTree.SubElement(tr, 'td'), 'a', {'href':url}).text = channel_long_name
 		ElementTree.SubElement(tr, 'td', {'style':'text-align:center'}).text = '-' if score is None else str(score)
 		ElementTree.SubElement(tr, 'td', {'style':'text-align:center'}).text = str(num_forecasts)
+	ElementTree.SubElement(div, 'p').text = 'The statistics above were last updated on %s.' % \
+			time.strftime('%B %-d, %Y at %I:%M %p', time.localtime())
 	r = toprettyxml_ElementTree(div)
 	return r
 
