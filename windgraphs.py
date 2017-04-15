@@ -1190,7 +1190,8 @@ def get_html(channel_to_score_, channel_to_num_forecasts_):
 		channel_long_name = c.FORECAST_PARSED_CHANNEL_TO_SINGLE_LINE_HTML_NAME[channel]
 		color = c.FORECAST_PARSED_CHANNEL_TO_COLOR[channel]
 		tr = ElementTree.SubElement(table, 'tr')
-		ElementTree.SubElement(ElementTree.SubElement(tr, 'td'), 'font', {'color':color}).text = channel_long_name
+		url = 'external_sites/%s.html' % channel
+		ElementTree.SubElement(ElementTree.SubElement(tr, 'td'), 'a', {'href':url}).text = channel_long_name
 		ElementTree.SubElement(tr, 'td', {'style':'text-align:center'}).text = '-' if score is None else str(score)
 		ElementTree.SubElement(tr, 'td', {'style':'text-align:center'}).text = str(num_forecasts)
 	r = toprettyxml_ElementTree(div)
