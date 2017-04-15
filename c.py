@@ -7,7 +7,6 @@ def read_var_from_json_file(var_name_):
 
 read_var_from_json_file('FORECAST_PARSED_CHANNELS')
 read_var_from_json_file('FORECAST_PARSED_CHANNEL_TO_COLOR')
-read_var_from_json_file('FORECAST_PARSED_CHANNEL_TO_MARKER')
 read_var_from_json_file('FORECAST_PARSED_CHANNEL_TO_LONG_MULTILINE_NAME')
 read_var_from_json_file('FORECAST_MARKER_SIZE')
 read_var_from_json_file('FORECAST_MARKER_EDGE_WIDTH')
@@ -16,8 +15,7 @@ read_var_from_json_file('OBSERVATION_MARKER')
 read_var_from_json_file('OBSERVATION_MARKER_SIZE')
 read_var_from_json_file('OBSERVATION_MARKER_EDGE_WIDTH')
 
-for d in [FORECAST_PARSED_CHANNEL_TO_COLOR, FORECAST_PARSED_CHANNEL_TO_MARKER, 
-			FORECAST_PARSED_CHANNEL_TO_LONG_MULTILINE_NAME]:
+for d in [FORECAST_PARSED_CHANNEL_TO_COLOR, FORECAST_PARSED_CHANNEL_TO_LONG_MULTILINE_NAME]:
 	assert set(d.keys()) == set(FORECAST_PARSED_CHANNELS)
 
 FORECAST_PARSED_CHANNEL_TO_SINGLE_LINE_HTML_NAME = {
