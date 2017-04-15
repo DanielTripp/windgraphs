@@ -1188,7 +1188,6 @@ def get_html(channel_to_score_, channel_to_num_forecasts_):
 		score = channel_to_score_[channel]
 		num_forecasts = channel_to_num_forecasts_[channel]
 		channel_long_name = c.FORECAST_PARSED_CHANNEL_TO_SINGLE_LINE_HTML_NAME[channel]
-		color = c.FORECAST_PARSED_CHANNEL_TO_COLOR[channel]
 		tr = ElementTree.SubElement(table, 'tr')
 		url = 'external_sites/%s.html' % channel
 		ElementTree.SubElement(ElementTree.SubElement(tr, 'td'), 'a', {'href':url}).text = channel_long_name
