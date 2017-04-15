@@ -8,10 +8,15 @@ def is_file_out_of_date(filename_):
 	return not os.path.exists(filename_) or (time.time() - os.path.getmtime(filename_) > 60*60*6)
 
 def make_all_files_if_out_of_date():
+	# Sorting the target times and this way so that -1 ("all times") is generated last, because that will 
+	# will be more convenient for developers who are testing this script in certain ways, when they 
+	# don't want to wait for the -1 stats (which are slow to calculate).  This way they will if they see some 
+	# files being generated faster.  Sorting the stats_time_frame_days this way for the same reason.
 	data_end_date = datetime.date.today()
-	for target_time in windgraphs.get_target_times():
+	target_times = sorted(windgraphs.get_target_times(), key=lambda t: sys.maxint if t == -1 else t)
+	for target_time in target_times:
 		for hours_in_advance in windgraphs.get_hours_in_advance():
-			for stats_time_frame_days in windgraphs.get_stats_time_frame_days():
+			for stats_time_frame_days in sorted(windgraphs.get_stats_time_frame_days()):
 				try:
 					json_filename = windgraphs.get_json_filename(target_time, hours_in_advance, stats_time_frame_days)
 					if is_file_out_of_date(json_filename):
