@@ -1182,7 +1182,9 @@ def get_html(channel_to_score_, channel_to_num_forecasts_):
 	h2 = ElementTree.SubElement(table_header_row, 'th')
 	h2.text = '"Mean Squared Error" score'
 	ElementTree.SubElement(h2, 'br').tail = '(Lower = more accurate)'
-	ElementTree.SubElement(table_header_row, 'th', {'valign':'top'}).text = 'Number of forecasts found'
+	h3 = ElementTree.SubElement(table_header_row, 'th')
+	h3.text = 'Number of forecasts included'
+	ElementTree.SubElement(h3, 'br').tail = 'in this calculation'
 	channels_sorted_by_score = sorted(channel_to_score_.keys(), key=lambda c: channel_to_score_[c] or sys.maxint)
 	for i, channel in enumerate(channels_sorted_by_score):
 		score = channel_to_score_[channel]
