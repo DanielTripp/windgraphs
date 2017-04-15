@@ -1184,11 +1184,12 @@ def get_html(channel_to_score_, channel_to_num_forecasts_):
 	ElementTree.SubElement(h2, 'br').tail = '(Lower = more accurate)'
 	ElementTree.SubElement(table_header_row, 'th', {'valign':'top'}).text = 'Number of forecasts found'
 	channels_sorted_by_score = sorted(channel_to_score_.keys(), key=lambda c: channel_to_score_[c] or sys.maxint)
-	for channel in channels_sorted_by_score:
+	for i, channel in enumerate(channels_sorted_by_score):
 		score = channel_to_score_[channel]
 		num_forecasts = channel_to_num_forecasts_[channel]
 		channel_long_name = c.FORECAST_PARSED_CHANNEL_TO_SINGLE_LINE_HTML_NAME[channel]
-		tr = ElementTree.SubElement(table, 'tr')
+		background_color = '#c9ddff' if i % 2 == 0 else '#9ec1ff'
+		tr = ElementTree.SubElement(table, 'tr', {'style':'background-color: %s;' % background_color})
 		url = 'external_sites/%s.html' % channel
 		ElementTree.SubElement(ElementTree.SubElement(tr, 'td'), 'a', {'href':url}).text = channel_long_name
 		ElementTree.SubElement(tr, 'td', {'style':'text-align:center'}).text = '-' if score is None else str(score)
