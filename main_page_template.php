@@ -174,11 +174,8 @@ $(document).ready(initialize);
 					<br>';
 				}
 			?>
-			<br style="clear: both;" />
 		</div>
-		<br>
 		<div>
-			<br>
 			<div style="float: left;">
 				<br>
 				<img id="img_loading" src="">
