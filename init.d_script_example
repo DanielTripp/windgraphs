@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 ### BEGIN INIT INFO
 # Provides:
 # Required-Start:    $remote_fs $syslog
@@ -14,9 +14,17 @@ cmd="./update_generated_data_files_forever.py"
 user="dt"
 
 name=`basename $0`
-pid_file="/var/run/$name.pid"
-stdout_log="/var/log/$name.log"
-stderr_log="/var/log/$name.err"
+if [ -z "$user" ]; then
+	pid_file="/var/run/$name.pid"
+	stdout_log="/var/log/$name.log"
+	stderr_log="/var/log/$name.err"
+else
+	windgraphs_service_files_dir="$(eval echo ~"$user")"/."$name"-service
+	mkdir -p "$windgraphs_service_files_dir"
+	pid_file="$windgraphs_service_files_dir/$name.pid"
+	stdout_log="$windgraphs_service_files_dir/$name.log"
+	stderr_log="$windgraphs_service_files_dir/$name.err"
+fi
 
 get_pid() {
     cat "$pid_file"
@@ -35,6 +43,8 @@ case "$1" in
         cd "$dir"
         if [ -z "$user" ]; then
             sudo -H $cmd >> "$stdout_log" 2>> "$stderr_log" &
+        elif [ "$user" == "$(id -un)" ] ; then
+            $cmd >> "$stdout_log" 2>> "$stderr_log" &
         else
             sudo -H -u "$user" $cmd >> "$stdout_log" 2>> "$stderr_log" &
         fi
