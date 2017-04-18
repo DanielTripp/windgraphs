@@ -56,16 +56,20 @@ function update_view(target_time_, weather_check_num_hours_, end_date_, num_days
 	var url = get_img_url(target_time_, weather_check_num_hours_, end_date_, num_days_);
 	var y_scroll_pos = $(window).scrollTop();
 	$("#img_loading").attr("src", "loading.gif");
-	$("#p_info").html('');
-	$.ajax({url:url, async:true, 
+	$("#p_info").hide();
+	$.ajax({url:url, async:true, cache:false, ifModified:true, 
 		error: function(jqXHR__, textStatus__, errorThrown__) {
 			$("#img_loading").attr("src", "error.png");
+			$("#p_info").show();
 			update_p_info_with_error(textStatus__, errorThrown__);
 		}, 
 		success: function(data__, textStatus__, jqXHR__) {
 			$("#img_loading").attr("src", "");
-			update_p_info(data__['html']);
-			$(window).scrollTop(y_scroll_pos);
+			$("#p_info").show();
+			if(textStatus__ == "success") { // will be "notmodified" if the response is a 304 
+				update_p_info(data__['html']);
+				$(window).scrollTop(y_scroll_pos);
+			}
 		}
 	});
 }
