@@ -13,7 +13,7 @@ def make_all_files_if_out_of_date():
 	# don't want to wait for the -1 stats (which are slow to calculate).  This way they will if they see some 
 	# files being generated faster.  Sorting the stats_time_frame_days this way for the same reason.
 	data_end_date = datetime.date.today()
-	target_times = sorted(windgraphs.get_target_times(), key=lambda t: sys.maxint if t == -1 else t)
+	target_times = sorted(windgraphs.get_target_hours(), key=lambda t: sys.maxint if t == -1 else t)
 	for target_time in target_times:
 		for hours_in_advance in windgraphs.get_hours_in_advance():
 			for stats_time_frame_days in sorted(windgraphs.get_stats_time_frame_days()):

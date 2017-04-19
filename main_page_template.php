@@ -114,7 +114,7 @@ $(document).ready(initialize);
 			What time of day do you sail? 
 			<select id="target_time_list" required>
 				<?php 
-					foreach(explode("\n", file_get_contents('config/target_times.txt')) as $line) {
+					foreach(explode("\n", file_get_contents('config/target_hours.txt')) as $line) {
 						if($line != "") {
 							$hour_24_str = $line;
 							$hour = intval($line); 
