@@ -2,7 +2,7 @@
 
 import sys, urllib2, json, pprint, re, datetime, os, threading, traceback, io, math, base64, StringIO, csv, tempfile, stat, random, copy
 from xml.etree import ElementTree
-import xml.dom.minidom
+import xml.dom.minidom, unittest
 import dateutil.parser, dateutil.tz
 import BeautifulSoup, psycopg2, pytz
 import matplotlib
@@ -490,14 +490,20 @@ def insert_parsed_forecasts_into_db(forecasts_):
 	curs = db_conn().cursor()
 	try:
 		for forecast in forecasts_:
-			insert_parsed_forecast_into_db(curs, forecast)
+			insert_parsed_forecast_into_db(forecast, curs)
 	finally:
 		curs.close()
 
-def insert_parsed_forecast_into_db(curs_, forecast_):
-	cols = [forecast_.weather_channel, forecast_.time_retrieved, em_to_str(forecast_.time_retrieved), forecast_.target_time, 
-			em_to_str(forecast_.target_time), forecast_.base_wind, forecast_.gust_wind]
-	curs_.execute('INSERT INTO wind_forecasts_parsed VALUES (%s,%s,%s,%s,%s,%s,%s)', cols)
+def insert_parsed_forecast_into_db(forecast_, curs_=None):
+	assert isinstance(forecast_, Forecast)
+	curs = db_conn().cursor() if curs_ is None else curs_
+	try:
+		cols = [forecast_.weather_channel, forecast_.time_retrieved, em_to_str(forecast_.time_retrieved), forecast_.target_time, 
+				em_to_str(forecast_.target_time), forecast_.base_wind, forecast_.gust_wind]
+		curs.execute('INSERT INTO wind_forecasts_parsed VALUES (%s,%s,%s,%s,%s,%s,%s)', cols)
+	finally:
+		if curs_ is None:
+			curs.close()
 
 ''' This returns True on success, but it will probably always succeed. 
 The chances of the primary key on (channel, time_retrieved) are small.  
@@ -523,6 +529,7 @@ def insert_raw_observation_into_db(channel_, web_response_str_):
 @lock
 @trans
 def insert_parsed_observation_into_db(obs_):
+	assert isinstance(obs_, Observation)
 	r = False
 	curs = db_conn().cursor()
 	try:
@@ -1098,7 +1105,7 @@ def copy_parsed_forecasts_for_testing(src_end_em_, dest_end_em_, time_window_):
 				base_wind = row[3]
 				gust_wind = row[4]
 				forecast = Forecast(weather_channel, dest_time_retrieved, dest_target_time, base_wind, gust_wind)
-				insert_parsed_forecast_into_db(curs2, forecast)
+				insert_parsed_forecast_into_db(forecast, curs2)
 		finally:
 			curs2.close()
 	finally:
@@ -1135,6 +1142,7 @@ def get_observations_and_forecasts_from_db(target_time_of_day_, weather_check_nu
 			end_date_, num_days_):
 	assert target_time_of_day_ in get_target_times()
 	assert weather_check_num_hours_in_advance_ in get_hours_in_advance()
+	assert isinstance(end_date_, datetime.date)
 	assert num_days_ in get_stats_time_frame_days()
 	target_times = get_target_times_em(target_time_of_day_, end_date_, num_days_)
 	observations = []
@@ -1369,6 +1377,69 @@ def make_observation_graph_envcan_vs_navcan():
 	plt.close()
 
 	u.write_png_to_tmp('observations-compare---', png_content_base64)
+
+def create_db_tables():
+	stmts = readfile('db_create_table_stmts.txt')
+	db_execute(stmts)
+
+class UnitTests(unittest.TestCase):
+
+	def test_simple(self):
+		delete_all_other_test_schemas_first = True
+		delete_this_test_schemas_after = False
+		schema_name = self.create_and_use_db_schema_for_testing(delete_all_other_test_schemas_first)
+		try:
+			create_db_tables()
+			year = 1980
+			month = 1
+			day = 1
+			daystr = '%d-%02d-%02d' % (year, month, day)
+			num_hours_in_advance = 24
+			forecast_channel = 'wf_sup'
+			for target_hour in range(24):
+				target_time = str_to_em('%s %02d:00' % (daystr, target_hour))
+				check_weather_time = target_time - 1000*60*60*num_hours_in_advance
+				observation_wind = 10; forecast_wind = observation_wind + target_hour
+				insert_parsed_observation_into_db(Observation('envcan', target_time, observation_wind, -1))
+				insert_parsed_forecast_into_db(Forecast(forecast_channel, check_weather_time, target_time, forecast_wind, -1))
+			for target_hour in (t for t in get_target_times() if t != -1):
+				data = get_data(target_hour, 24, datetime.date(year, month, day+1), 15)
+				score = data['channel_to_score'][forecast_channel]
+				expected_score = target_hour**2
+				self.assertEqual(score, expected_score)
+		finally:
+			if delete_this_test_schemas_after:
+				db_execute('DROP SCHEMA %s CASCADE' % schema_name)
+
+	def create_and_use_db_schema_for_testing(self, delete_all_other_test_schemas_first_=False):
+		schema_name_prefix = 'windgraphs_test_'
+		if delete_all_other_test_schemas_first_:
+			for i in xrange(100):
+				schema_name = '%s%d' % (schema_name_prefix, i)
+				try:
+					db_execute('DROP SCHEMA %s CASCADE' % schema_name)
+				except psycopg2.ProgrammingError:
+					pass
+		for i in xrange(100):
+			schema_name = '%s%d' % (schema_name_prefix, i)
+			try:
+				db_execute('CREATE SCHEMA %s' % schema_name)
+				break
+			except psycopg2.ProgrammingError:
+				pass
+		else:
+			raise Exception("Couldn't create test schema (starting with '%s').  Do too many exist already?" % schema_name_prefix)
+		db_execute('SET search_path TO %s' % schema_name)
+		return schema_name
+
+@lock
+@trans
+def db_execute(sql_):
+	curs = db_conn().cursor()
+	try:
+		curs.execute(sql_)
+	finally:
+		curs.close()
 
 if __name__ == '__main__':
 

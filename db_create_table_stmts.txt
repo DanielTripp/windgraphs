@@ -1,0 +1,46 @@
+CREATE TABLE wind_forecasts_raw (
+    weather_channel character varying(100),
+    time_retrieved bigint,
+    time_retrieved_str character varying(100),
+    content character varying
+);
+CREATE INDEX wind_forecasts_raw_idx1 ON wind_forecasts_raw USING btree (time_retrieved);
+CREATE INDEX wind_forecasts_raw_weather_channel ON wind_forecasts_raw USING btree (weather_channel);
+
+
+CREATE TABLE wind_forecasts_parsed (
+    weather_channel character varying(100),
+    time_retrieved bigint,
+    time_retrieved_str character varying(100),
+    target_time bigint,
+    target_time_str character varying(100),
+    base_wind integer,
+    gust_wind integer
+);
+CREATE INDEX wind_forecasts_parsed_target_time ON wind_forecasts_parsed USING btree (target_time);
+CREATE INDEX wind_forecasts_parsed_time_retrieved ON wind_forecasts_parsed USING btree (time_retrieved);
+CREATE INDEX wind_forecasts_parsed_weather_channel ON wind_forecasts_parsed USING btree (weather_channel);
+
+
+CREATE TABLE wind_observations_raw (
+    channel character varying(100) NOT NULL,
+    time_retrieved bigint NOT NULL,
+    time_retrieved_str character varying(100),
+    content character varying
+);
+ALTER TABLE ONLY wind_observations_raw
+    ADD CONSTRAINT wind_observations_raw_pkey PRIMARY KEY (channel, time_retrieved);
+
+
+CREATE TABLE wind_observations_parsed (
+    channel character varying(100) NOT NULL,
+    time_retrieved bigint NOT NULL,
+    time_retrieved_str character varying(100),
+    base_wind integer,
+    gust_wind integer
+);
+ALTER TABLE ONLY wind_observations_parsed
+    ADD CONSTRAINT wind_observations_parsed_pkey PRIMARY KEY (channel, time_retrieved);
+
+
+
