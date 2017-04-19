@@ -1449,6 +1449,32 @@ class UnitTests(unittest.TestCase):
 			expected_score = 4
 			self.assertEqual(score, expected_score)
 
+	def test_dst_fudging_across_spring_crossover(self):
+		forecast_channel = 'wf_reg'
+		self.assertTrue(should_channel_be_fudged_for_dst(forecast_channel))
+		year = 2018; month = 3; day_before_dst_begins = 10
+		daystr = '%d-%02d-%02d' % (year, month, day_before_dst_begins)
+		start_target_time = str_to_em('%s 00:00' % daystr)
+		target_hours = [t for t in get_target_times() if t != -1]
+		for target_time in range(start_target_time, start_target_time+1000*60*60*24*2, 1000*60*60):
+			num_hours_in_advance = 24
+			check_weather_time = target_time - 1000*60*60*num_hours_in_advance
+			observation_wind = 10
+			insert_parsed_observation_into_db(Observation('envcan', target_time, observation_wind, -1))
+			target_hour = em_to_datetime(target_time).hour
+			if is_in_dst(target_time):
+				forecast_wind = observation_wind + (2 if target_hour in get_target_times() else 3)
+			else:
+				forecast_wind = observation_wind + (2 if target_hour+1 in get_target_times() else 3)
+			insert_parsed_forecast_into_db(Forecast(forecast_channel, check_weather_time, target_time, forecast_wind, -1))
+		for target_hour in target_hours:
+			data = get_data(target_hour, 24, datetime.date(year, month, day_before_dst_begins+2), 15)
+			score = data['channel_to_score'][forecast_channel]
+			expected_score = 4
+			self.assertEqual(score, expected_score)
+			num_forecasts = data['channel_to_num_forecasts'][forecast_channel]
+			self.assertEqual(score, expected_score)
+
 	def create_and_use_db_schema_for_testing(self, delete_all_other_test_schemas_first_=False):
 		schema_name_prefix = 'windgraphs_test_'
 		if delete_all_other_test_schemas_first_:
