@@ -1182,7 +1182,8 @@ def get_target_times_em(target_time_of_day_, end_date_, num_days_):
 	r = [datetime_to_em(datetime.datetime.combine(day, tyme)) for tyme in times for day in days]
 	return r
 
-def get_html(channel_to_score_, channel_to_num_forecasts_):
+def get_html(channel_to_score_, channel_to_num_forecasts_, 
+		target_hour_, weather_check_num_hours_in_advance_, end_date_, num_days_):
 	div = ElementTree.Element('div')
 	table = ElementTree.SubElement(div, 'table', {'style':'border-spacing:7mm 1mm'})
 	table_header_row = ElementTree.SubElement(table, 'tr')
@@ -1206,6 +1207,9 @@ def get_html(channel_to_score_, channel_to_num_forecasts_):
 		ElementTree.SubElement(tr, 'td', {'style':'text-align:center'}).text = str(num_forecasts)
 	ElementTree.SubElement(div, 'p').text = 'The statistics above were last updated on %s.' % \
 			time.strftime('%B %-d, %Y at %I:%M %p', time.localtime())
+	ElementTree.SubElement(ElementTree.SubElement(div, 'p'), 'font', {'size':'-1'}).text = \
+		'(Debugging info: target hour: %d, weather check num hours: %d, end date: %s, num days: %d)' % \
+			(target_hour_, weather_check_num_hours_in_advance_, end_date_, num_days_)
 	r = toprettyxml_ElementTree(div)
 	return r
 
@@ -1219,7 +1223,8 @@ def get_data(target_time_of_day_, weather_check_num_hours_in_advance_, end_date_
 
 	channel_to_score = get_forecast_channel_to_score(observations, channel_to_forecasts)
 	channel_to_num_forecasts = get_channel_to_num_forecasts(channel_to_forecasts)
-	html = get_html(channel_to_score, channel_to_num_forecasts)
+	html = get_html(channel_to_score, channel_to_num_forecasts, 
+			target_time_of_day_, weather_check_num_hours_in_advance_, end_date_, num_days_)
 
 	return {'channel_to_score': channel_to_score, 
 			'channel_to_num_forecasts': channel_to_num_forecasts, 
