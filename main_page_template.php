@@ -203,6 +203,7 @@ $(document).ready(initialize);
 			?>
 		</div>
 		<div>
+			<hr>
 			<div style="float: left;">
 				<br>
 				<img id="img_loading" src="">
