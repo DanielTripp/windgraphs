@@ -1,0 +1,13 @@
+#!/usr/bin/env bash
+
+service windgraphs status >/dev/null
+if [ "$?" != 0 ] ; then 
+	echo "windgraphs service might have been stopped already (before this restart)"; 
+fi; 
+service windgraphs restart >/dev/null; 
+sleep 10; 
+service windgraphs status >/dev/null; 
+if [ "$?" != 0 ] ; then 
+	echo "windgraphs service might not have started correctly.  (Check after restart failed.)"; 
+fi
+
