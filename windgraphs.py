@@ -455,9 +455,10 @@ class Observation(object):
 def parse_envcan_observation_web_response(web_response_):
 	r = []
 	in_data_yet = False
+	header_line_pattern = re.compile('"Date\/Time","Year","Month","Day","Time","Data Quality","Temp \(.*C\)","Temp Flag","Dew Point Temp \(.*C\)","Dew Point Temp Flag","Rel Hum \(.*\)","Rel Hum Flag","Wind Dir \(10s deg\)","Wind Dir Flag","Wind Spd \(km/h\)","Wind Spd Flag","Visibility \(km\)","Visibility Flag","Stn Press \(kPa\)","Stn Press Flag","Hmdx","Hmdx Flag","Wind Chill","Wind Chill Flag","Weather"')
 	for line in web_response_.splitlines():
 		if not in_data_yet:
-			if line.startswith('"Date/Time","Year","Month","Day"'):
+			if re.match(header_line_pattern, line.rstrip()):
 				in_data_yet = True
 		else:
 			fields = csv.reader(StringIO.StringIO(line)).next()
@@ -467,6 +468,8 @@ def parse_envcan_observation_web_response(web_response_):
 				time_retrieved = int(time.mktime(time.strptime(datetime, '%Y-%m-%d %H:%M'))*1000)
 				gust = -1
 				r.append(Observation('envcan', time_retrieved, wind, gust))
+	if not in_data_yet:
+		raise Exception('Found no data.  Either this file is empty, or the headers were not what we expect.')
 	return r
 
 def kmph_to_knots(kmph_):
