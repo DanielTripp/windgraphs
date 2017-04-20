@@ -1205,8 +1205,9 @@ def get_html(channel_to_score_, channel_to_num_forecasts_,
 		ElementTree.SubElement(ElementTree.SubElement(tr, 'td'), 'a', {'href':url}).text = channel_long_name
 		ElementTree.SubElement(tr, 'td', {'style':'text-align:center'}).text = '-' if score is None else str(score)
 		ElementTree.SubElement(tr, 'td', {'style':'text-align:center'}).text = str(num_forecasts)
-	ElementTree.SubElement(div, 'p').text = 'The statistics above were last updated on %s.' % \
-			time.strftime('%B %-d, %Y at %I:%M %p', time.localtime())
+	now = datetime.datetime.now()
+	timestamp = now.strftime('%B %-d, %Y at %%s:%M %p') % (now.strftime('%I').lstrip('0'))
+	ElementTree.SubElement(div, 'p').text = 'The statistics above were last updated on %s.' % timestamp
 	ElementTree.SubElement(ElementTree.SubElement(div, 'p'), 'font', {'size':'-1'}).text = \
 		'(Debugging info: target hour: %d, weather check num hours: %d, end date: %s, num days: %d)' % \
 			(target_hour_, weather_check_num_hours_in_advance_, end_date_, num_days_)
