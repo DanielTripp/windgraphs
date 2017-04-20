@@ -8,7 +8,10 @@
 	<head>
 	<script src="jquery-3.1.0.min.js"></script>
 	<script src="sprintf.min.js"></script>
+	<script type="text/javascript" src="js/buckets.min.js"></script>
 	<script type="text/javascript">
+
+var g_cache_params_to_data = new buckets.Dictionary();
 
 function initialize() {
 	init_gui_controls();
@@ -66,12 +69,32 @@ function update_view(target_time_, weather_check_num_hours_, end_date_, num_days
 		success: function(data__, textStatus__, jqXHR__) {
 			$("#img_loading").attr("src", "");
 			$("#p_info").show();
-			if(textStatus__ == "success") { // will be "notmodified" if the response is a 304 
+			if(textStatus__ == "success") { // i.e. HTTP status 200 
+				put_data_into_cache(target_time_, weather_check_num_hours_, end_date_, num_days_, data__);
 				update_p_info(data__['html']);
+				$(window).scrollTop(y_scroll_pos);
+			} else if(textStatus__ == "notmodified") { // i.e. HTTP status 304 
+				var data_from_cache = get_data_from_cache(target_time_, weather_check_num_hours_, end_date_, num_days_);
+				update_p_info(data_from_cache['html']);
 				$(window).scrollTop(y_scroll_pos);
 			}
 		}
 	});
+}
+
+function get_cache_key(target_time_, weather_check_num_hours_, end_date_, num_days_) {
+	return [target_time_, weather_check_num_hours_, end_date_, num_days_];
+}
+
+function get_data_from_cache(target_time_, weather_check_num_hours_, end_date_, num_days_, data_) {
+	var params_key = get_cache_key(target_time_, weather_check_num_hours_, end_date_, num_days_);
+	var r = g_cache_params_to_data.get(params_key);
+	return r;
+}
+
+function put_data_into_cache(target_time_, weather_check_num_hours_, end_date_, num_days_, data_) {
+	var params_key = [target_time_, weather_check_num_hours_, end_date_, num_days_];
+	g_cache_params_to_data.set(params_key, data_);
 }
 
 function get_legend_observation_img_filename() {
