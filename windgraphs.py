@@ -1185,7 +1185,7 @@ def get_target_times_em(target_time_of_day_, end_date_, num_days_):
 	r = [datetime_to_em(datetime.datetime.combine(day, tyme)) for tyme in times for day in days]
 	return r
 
-def get_html(channel_to_score_, channel_to_num_forecasts_, 
+def get_html(channel_to_mse_score_, channel_to_num_forecasts_, 
 		target_hour_, weather_check_num_hours_in_advance_, end_date_, num_days_):
 	div = ElementTree.Element('div')
 	table = ElementTree.SubElement(div, 'table', {'style':'border-spacing:7mm 1mm'})
@@ -1197,9 +1197,9 @@ def get_html(channel_to_score_, channel_to_num_forecasts_,
 	h3 = ElementTree.SubElement(table_header_row, 'th')
 	h3.text = 'Number of forecasts included'
 	ElementTree.SubElement(h3, 'br').tail = 'in this calculation'
-	channels_sorted_by_score = sorted(channel_to_score_.keys(), key=lambda c: channel_to_score_[c] or sys.maxint)
+	channels_sorted_by_score = sorted(channel_to_mse_score_.keys(), key=lambda c: channel_to_mse_score_[c] or sys.maxint)
 	for i, channel in enumerate(channels_sorted_by_score):
-		score = channel_to_score_[channel]
+		score = channel_to_mse_score_[channel]
 		num_forecasts = channel_to_num_forecasts_[channel]
 		channel_long_name = c.FORECAST_PARSED_CHANNEL_TO_SINGLE_LINE_HTML_NAME[channel]
 		background_color = '#d6d6d6' if i % 2 == 0 else '#c4c4c4'
@@ -1225,12 +1225,12 @@ def get_data(target_time_of_day_, weather_check_num_hours_in_advance_, end_date_
 	observations, channel_to_forecasts = get_observations_and_forecasts_from_db(target_time_of_day_, 
 			weather_check_num_hours_in_advance_, end_date_, num_days_)
 
-	channel_to_score = get_forecast_channel_to_score(observations, channel_to_forecasts)
+	channel_to_mse_score = get_forecast_channel_to_mse_score(observations, channel_to_forecasts)
 	channel_to_num_forecasts = get_channel_to_num_forecasts(channel_to_forecasts)
-	html = get_html(channel_to_score, channel_to_num_forecasts, 
+	html = get_html(channel_to_mse_score, channel_to_num_forecasts, 
 			target_time_of_day_, weather_check_num_hours_in_advance_, end_date_, num_days_)
 
-	return {'channel_to_score': channel_to_score, 
+	return {'channel_to_mse_score': channel_to_mse_score, 
 			'channel_to_num_forecasts': channel_to_num_forecasts, 
 			'html': html}
 
@@ -1240,7 +1240,7 @@ def get_channel_to_num_forecasts(channel_to_forecasts_):
 		r[channel] = len(forecasts)
 	return r
 
-def get_forecast_channel_to_score(observations_, channel_to_forecasts_):
+def get_forecast_channel_to_mse_score(observations_, channel_to_forecasts_):
 	observation_datetime_to_wind = {}
 	for observation in observations_:
 		observation_datetime_to_wind[observation[0]] = observation[1]
@@ -1416,7 +1416,7 @@ class UnitTests(unittest.TestCase):
 			insert_parsed_forecast_into_db(Forecast(forecast_channel, check_weather_time, target_time, forecast_wind, -1))
 		for target_hour in (t for t in get_target_hours() if t != -1):
 			data = get_data(target_hour, 24, datetime.date(year, month, day+1), 15)
-			score = data['channel_to_score'][forecast_channel]
+			score = data['channel_to_mse_score'][forecast_channel]
 			expected_score = target_hour**2
 			self.assertEqual(score, expected_score)
 
@@ -1435,7 +1435,7 @@ class UnitTests(unittest.TestCase):
 			insert_parsed_forecast_into_db(Forecast(forecast_channel, check_weather_time, target_time, forecast_wind, -1))
 		for target_hour in (t for t in get_target_hours() if t != -1):
 			data = get_data(target_hour, 24, datetime.date(year, month, day+1), 15)
-			score = data['channel_to_score'][forecast_channel]
+			score = data['channel_to_mse_score'][forecast_channel]
 			expected_score = 4
 			self.assertEqual(score, expected_score)
 
@@ -1454,7 +1454,7 @@ class UnitTests(unittest.TestCase):
 			insert_parsed_forecast_into_db(Forecast(forecast_channel, check_weather_time, target_time, forecast_wind, -1))
 		for target_hour in (t for t in get_target_hours() if t != -1):
 			data = get_data(target_hour, 24, datetime.date(year, month, day+1), 15)
-			score = data['channel_to_score'][forecast_channel]
+			score = data['channel_to_mse_score'][forecast_channel]
 			expected_score = 4
 			self.assertEqual(score, expected_score)
 
@@ -1478,7 +1478,7 @@ class UnitTests(unittest.TestCase):
 			insert_parsed_forecast_into_db(Forecast(forecast_channel, check_weather_time, target_time, forecast_wind, -1))
 		for target_hour in target_hours:
 			data = get_data(target_hour, 24, datetime.date(year, month, day_before_dst_begins+2), 15)
-			score = data['channel_to_score'][forecast_channel]
+			score = data['channel_to_mse_score'][forecast_channel]
 			expected_score = 4
 			self.assertEqual(score, expected_score)
 			num_forecasts = data['channel_to_num_forecasts'][forecast_channel]
