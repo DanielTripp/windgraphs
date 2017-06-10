@@ -113,8 +113,17 @@ function update_p_info_with_error(text_status_, error_thrown_) {
 }
 
 function update_p_info(html_) {
+	var table = $("#ourTable")[0];
+	var lastSortList = null;
+	if(table != undefined) {
+		lastSortList = $("#ourTable")[0].config.sortList;
+	}
 	$("#p_info").html(html_);
-	$("#ourTable").tablesorter({sortList: [[1,0]]});
+	if(lastSortList != null) {
+		$("#ourTable").tablesorter({sortList: lastSortList});
+	} else {
+		$("#ourTable").tablesorter({sortList: [[1,0]]});
+	}
 }
 
 function get_img_url(target_time_, weather_check_num_hours_, end_date_, num_days_) {
