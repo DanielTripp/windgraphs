@@ -7,6 +7,8 @@
 <html>
 	<head>
 	<script src="jquery-3.1.0.min.js"></script>
+	<script type="text/javascript" src="jquery.tablesorter.min.js"></script> 
+	<link rel="stylesheet" href="jquery-tablesorter-blue-skin/style.css"/>
 	<script src="sprintf.min.js"></script>
 	<script type="text/javascript" src="js/buckets.min.js"></script>
 	<script type="text/javascript">
@@ -112,6 +114,7 @@ function update_p_info_with_error(text_status_, error_thrown_) {
 
 function update_p_info(html_) {
 	$("#p_info").html(html_);
+	$("#ourTable").tablesorter({sortList: [[1,0]]});
 }
 
 function get_img_url(target_time_, weather_check_num_hours_, end_date_, num_days_) {

@@ -1196,9 +1196,12 @@ def get_target_times_em(target_time_of_day_, end_date_, num_days_):
 
 def get_html(channel_to_mse_score_, channel_to_num_forecasts_, 
 		target_hour_, weather_check_num_hours_in_advance_, end_date_, num_days_):
+	assert sorted(channel_to_mse_score_.keys()) == sorted(channel_to_num_forecasts_.keys())
 	div = ElementTree.Element('div')
-	table = ElementTree.SubElement(div, 'table', {'style':'border-spacing:7mm 1mm'})
-	table_header_row = ElementTree.SubElement(table, 'tr')
+	table = ElementTree.SubElement(div, 'table', {'id':'ourTable', 'class':'tablesorter', 
+			'border':'0', 'cellpadding':'0', 'cellspacing':'1'})
+	table_thead = ElementTree.SubElement(table, 'thead')
+	table_header_row = ElementTree.SubElement(table_thead, 'tr')
 	ElementTree.SubElement(table_header_row, 'th', {'valign':'top', 'style':'text-align:left'}).text = 'Forecast source'
 	h2 = ElementTree.SubElement(table_header_row, 'th')
 	h2.text = '"Mean Squared Error" score'
@@ -1206,13 +1209,14 @@ def get_html(channel_to_mse_score_, channel_to_num_forecasts_,
 	h3 = ElementTree.SubElement(table_header_row, 'th')
 	h3.text = 'Number of forecasts included'
 	ElementTree.SubElement(h3, 'br').tail = 'in this calculation'
+	table_tbody = ElementTree.SubElement(table, 'tbody')
 	channels_sorted_by_score = sorted(channel_to_mse_score_.keys(), key=lambda c: channel_to_mse_score_[c] or sys.maxint)
-	for i, channel in enumerate(channels_sorted_by_score):
+	for channel, score in channel_to_mse_score_.iteritems():
 		score = channel_to_mse_score_[channel]
 		num_forecasts = channel_to_num_forecasts_[channel]
 		channel_long_name = c.FORECAST_PARSED_CHANNEL_TO_SINGLE_LINE_HTML_NAME[channel]
-		background_color = '#d6d6d6' if i % 2 == 0 else '#c4c4c4'
-		tr = ElementTree.SubElement(table, 'tr', {'style':'background-color: %s;' % background_color})
+		background_color = '#d6d6d6'
+		tr = ElementTree.SubElement(table_tbody, 'tr', {'style':'background-color: %s;' % background_color})
 		url = 'external_sites/%s.html' % channel
 		ElementTree.SubElement(ElementTree.SubElement(tr, 'td'), 'a', {'href':url}).text = channel_long_name
 		ElementTree.SubElement(tr, 'td', {'style':'text-align:center'}).text = '-' if score is None else str(score)
@@ -1330,8 +1334,8 @@ def make_observation_graph_envcan_vs_navcan():
 	main_figure = plt.figure(1)
 	fig, ax = plt.subplots()
 	fig.set_size_inches(100, 8)
-	start_date = datetime.date(2017, 1, 1)
-	end_date = datetime.date(2017, 2, 1)
+	start_date = datetime.date(2017, 3, 1)
+	end_date = datetime.date(2017, 5, 1)
 	envcan_observations = get_parsed_observations('envcan', date_to_em(start_date), date_to_em(end_date))
 	navcan_observations = get_parsed_observations('navcan', date_to_em(start_date), date_to_em(end_date))
 
