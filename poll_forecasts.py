@@ -2,7 +2,7 @@
 
 import sys, os, argparse, time
 from dtpythonutil.misc import *
-import windgraphs
+import windgraphs, c
 
 if __name__ == '__main__':
 
