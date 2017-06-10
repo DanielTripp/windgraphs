@@ -210,18 +210,21 @@ def windfinder_regular_get_web_response():
 				fout.write(r)
 	return r
 
-def get_forecast_from_web_and_insert_into_db(raw_channel_, force_web_get_, dont_insert_into_db_):
+def get_forecast_from_web_and_insert_into_db(raw_channel_, force_web_get_, dont_insert_into_db_, print_raw_, print_parsed_):
 	time_retrieved_em = now_em()
 	if force_web_get_ or not do_any_raw_forecasts_exist_in_db_since_top_of_hour(raw_channel_, time_retrieved_em):
 		web_get_func = get_forecast_web_get_func(raw_channel_)
 		web_response = web_get_func()
-		insert_raw_forecast_into_db(raw_channel_, web_response, time_retrieved_em)
+		if print_raw_:
+			print web_response
+		if not dont_insert_into_db_:
+			insert_raw_forecast_into_db(raw_channel_, web_response, time_retrieved_em)
 		parse_func = get_forecast_parse_func(raw_channel_)
 		forecasts = parse_func(web_response, time_retrieved_em)
-		if dont_insert_into_db_:
+		if print_parsed_:
 			for forecast in forecasts:
 				print forecast
-		else:
+		if not dont_insert_into_db_:
 			insert_parsed_forecasts_into_db(forecasts)
 
 def windfinder_regular_parse_web_response(web_response_str_, time_retrieved_em_):
@@ -334,7 +337,13 @@ def windguru_get_web_response():
 		with open('d-test-predictions-wg') as fin:
 			r = fin.read()
 	else:
-		url = 'http://www.windguru.cz/int/index.php?sc=64'
+		# The URL for windguru before about '2017-05-29 04:30' was 
+		# 'http://www.windguru.cz/int/index.php?sc=64' That is still the URL if 
+		# you're reading windguru from a browser.  But at that point in time, 
+		# windguru switched from having the wind data that we want in that URL (the 
+		# main page) to the URL below, which is loaded later by that URL through 
+		# AJAX or similar, I think.  The format of the data stayed the same.
+		url = 'https://www.windguru.cz/fcst.php?s=64&'
 		r = urllib2.urlopen(url).read()
 		if DEV_WRITE_TO_FILES:
 			with open('d-test-predictions-wg', 'w') as fout:
@@ -700,10 +709,10 @@ def get_envcan_observations_and_insert_into_db_single_month(date_, dry_run_, pri
 		if printlevel_ in (1, 2):
 			print '%s total parsed observations: %d.  Num successfully inserted: %d' % (monthstr, len(parsed_observations), num_inserts)
 
-def get_all_forecasts_from_web_and_insert_into_db(force_web_get_, dont_insert_into_db_):
-	for raw_channel in c.FORECAST_RAW_CHANNELS:
+def get_all_forecasts_from_web_and_insert_into_db(raw_channels_, force_web_get_, dont_insert_into_db_, print_raw_, print_parsed_):
+	for raw_channel in raw_channels_:
 		try:
-			get_forecast_from_web_and_insert_into_db(raw_channel, force_web_get_, dont_insert_into_db_)
+			get_forecast_from_web_and_insert_into_db(raw_channel, force_web_get_, dont_insert_into_db_, print_raw_, print_parsed_)
 		except:
 			traceback.print_exc()
 
