@@ -293,7 +293,7 @@ def windfinder_parse_web_response_by_lines(web_response_str_, parsed_channel_, t
 				hacked_line = line
 			target_month_and_day = re.sub('^.*? ', '', hacked_line.strip())
 		elif '<span class="value">' in line and '<span class="unit">h</span>' in line:
-			if '<div class="data-time weathertable__cell">' not in lines[linei-1] \
+			if '<div class="data-time weathertable__cell' not in lines[linei-1] \
 					or '<div class="cell-timespan weathertable__cellgroup weathertable__cellgroup--stacked">' not in lines[linei-2]:
 				raise Exception('problem on line %d' % (linei+1))
 			target_hour = int(re.search(r'>(\d+)<', line).group(1))
