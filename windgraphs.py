@@ -250,10 +250,15 @@ def parent(node_, n_):
 #                      <h4>
 #                          Thursday, Mar 02
 #                      </h4>
-# And there's another possibility - it seems to appear w/ the superforecast, eg. 2017-03-25 22:00 (this is case #3):  
+# another possibility - it seems to appear w/ the superforecast, eg. 2017-03-25 22:00 (this is case #3):  
 #                     <div class="weathertable__header">
 #                          <h4>Saturday, Mar 25</h4>
-# This code handles all three. 
+# and another possibility, which showed up (in WindFinder Regular at least) at 2017-06-27 04:00: 
+#                    <div class="weathertable__header">
+#                      <h4 class="weathertable__headline">
+#                          Friday, Sep 08
+#                      </h4>
+# This code handles all four cases.
 #
 #
 #
@@ -278,12 +283,12 @@ def windfinder_parse_web_response_by_lines(web_response_str_, parsed_channel_, t
 			linei += 1
 			line = lines[linei]
 			# See note [1] 
-			if '<h4>' in line: 
-				if len(line.strip()) == len('<h4>'): # this is case #2 
+			if ('<h4>' in line) or ('<h4 ' in line):
+				if '</h4>' in line: # this is note [1] - case #3 
+					hacked_line = re.match('.*?>(.*)</h4>', line).group(1)
+				else: # this is note [1] - could be either case #2 or case #4 
 					linei += 1
 					hacked_line = lines[linei]
-				else: # this is case #3
-					hacked_line = line.strip()[len('<h4>'):-len('</h4>')]
 			else: # this is note [1] - case #1 
 				hacked_line = line
 			target_month_and_day = re.sub('^.*? ', '', hacked_line.strip())
