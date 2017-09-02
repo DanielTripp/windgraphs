@@ -1239,6 +1239,9 @@ def get_data(target_time_of_day_, weather_check_num_hours_in_advance_, end_date_
 			weather_check_num_hours_in_advance_, end_date_, num_days_)
 
 	channel_to_mse_score = get_forecast_channel_to_mse_score(observations, channel_to_forecasts)
+	'''
+	channel_to_percent_wins = get_forecast_channel_to_percent_wins(observations, channel_to_forecasts)
+	'''
 	channel_to_num_forecasts = get_channel_to_num_forecasts(channel_to_forecasts)
 	html = get_html(channel_to_mse_score, channel_to_num_forecasts, 
 			target_time_of_day_, weather_check_num_hours_in_advance_, end_date_, num_days_)
@@ -1252,6 +1255,14 @@ def get_channel_to_num_forecasts(channel_to_forecasts_):
 	for channel, forecasts in channel_to_forecasts_.iteritems():
 		r[channel] = len(forecasts)
 	return r
+
+'''
+def get_forecast_channel_to_percent_wins(observations_, channel_to_forecasts_):
+	observation_datetime_to_wind = {}
+xxxxxxxxxx # left off here 
+	for observation in observations_:
+		observation_datetime_to_wind[observation[0]] = observation[1]
+'''
 
 def get_forecast_channel_to_mse_score(observations_, channel_to_forecasts_):
 	observation_datetime_to_wind = {}
@@ -1334,8 +1345,8 @@ def make_observation_graph_envcan_vs_navcan():
 	main_figure = plt.figure(1)
 	fig, ax = plt.subplots()
 	fig.set_size_inches(100, 8)
-	start_date = datetime.date(2017, 3, 1)
-	end_date = datetime.date(2017, 5, 1)
+	start_date = datetime.date(2017, 8, 29)
+	end_date = datetime.date(2017, 8, 30)
 	envcan_observations = get_parsed_observations('envcan', date_to_em(start_date), date_to_em(end_date))
 	navcan_observations = get_parsed_observations('navcan', date_to_em(start_date), date_to_em(end_date))
 
@@ -1368,12 +1379,23 @@ def make_observation_graph_envcan_vs_navcan():
 	# Draw date labels on X-axis:
 	fig.autofmt_xdate()
 	date_format = ('%b %d %Y' if end_date < datetime.date(1990, 1, 1) else '%b %d') # Include year, for testing time frames 
-	ax.xaxis.set_major_formatter(matplotlib.dates.DateFormatter(date_format))
 	tick_datetimes = []
 	tick_datetime = datetime_round_down_to_midnight(min_xval)
+	if max_xval - min_xval < datetime.timedelta(days=5):
+		date_format = '%b %d %H:%M'
+		tick_delta = datetime.timedelta(hours=1)
+	elif max_xval - min_xval < datetime.timedelta(days=30):
+		date_format = '%b %d %H:%M'
+		tick_delta = datetime.timedelta(hours=4)
+	else:
+		date_format = '%b %d'
+		tick_delta = datetime.timedelta(days=1)
+	if end_date < datetime.date(1990, 1, 1): # Include year, for testing time frames 
+		date_format += ' %Y'
+	ax.xaxis.set_major_formatter(matplotlib.dates.DateFormatter(date_format))
 	while tick_datetime <= max_xval:
 		tick_datetimes.append(tick_datetime)
-		tick_datetime += datetime.timedelta(days=1)
+		tick_datetime += tick_delta
 	ax.xaxis.set_major_locator(matplotlib.ticker.FixedLocator(map(pylab.date2num, tick_datetimes)))
 
 	for date1 in datetime_xrange(datetime_to_date(min_xval), datetime_to_date(max_xval), 
