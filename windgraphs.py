@@ -142,7 +142,7 @@ def trans(f):
 
 def db_connect():
 	global g_db_conn
-	DATABASE_CONNECT_POSITIONAL_ARGS = ("dbname='postgres' user='windgraphs' host='localhost' password='%s'" % PASSWORD,)
+	DATABASE_CONNECT_POSITIONAL_ARGS = ("port=5433 dbname='postgres' user='windgraphs' host='localhost' password='%s'" % PASSWORD,)
 	DATABASE_CONNECT_KEYWORD_ARGS = {}
 	g_db_conn = psycopg2.connect(*DATABASE_CONNECT_POSITIONAL_ARGS, **DATABASE_CONNECT_KEYWORD_ARGS)
 
