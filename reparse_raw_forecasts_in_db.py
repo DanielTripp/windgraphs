@@ -8,7 +8,7 @@ if __name__ == '__main__':
 
 	if len(sys.argv) not in (3, 4):
 		print 'This program needs either 2 or 3 arguments:'
-		print '1) a raw weather channel, 2) a start date/time, and 3) (optional) an end date/time.'
+		print '1) a raw weather channel, 2) a start date/time, and 3) (optional) an end date/time (defaults to the current date/time).'
 		sys.exit(1)
 	else:
 		weather_channel = sys.argv[1]
