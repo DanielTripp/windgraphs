@@ -721,9 +721,10 @@ def get_all_forecasts_from_web_and_insert_into_db(raw_channels_, force_web_get_,
 		except:
 			traceback.print_exc()
 
-# CMC doesn't have gust info, either in the JSON in the GUI.  
+# Note [1]: CMC doesn't have gust info, either in the JSON in the GUI.  
+# Note [2]: Occasionally, there is no 'wind_speed' item eg. sf_cmc 2017-08-24 18:00 
 def sailflow_parse_web_response(web_response_, channel_, time_retrieved_em_):
-	parse_gusts = channel_ != 'sf_cmc'
+	parse_gusts = channel_ != 'sf_cmc' # See note [1] 
 	data = json.loads(web_response_)
 	parsed_forecasts = []
 	if data['units_wind'] != 'mph':
@@ -731,6 +732,8 @@ def sailflow_parse_web_response(web_response_, channel_, time_retrieved_em_):
 	for raw_forecast in data['model_data']:
 		target_time = raw_forecast['model_time_local']
 		target_time = str_to_em(target_time[:16])
+		if 'wind_speed' not in raw_forecast:
+			continue
 		base_wind_mph = raw_forecast['wind_speed']
 		base_wind_knots = int(mph_to_knots(base_wind_mph))
 		if parse_gusts:
@@ -1350,8 +1353,8 @@ def make_observation_graph_envcan_vs_navcan():
 	main_figure = plt.figure(1)
 	fig, ax = plt.subplots()
 	fig.set_size_inches(100, 8)
-	start_date = datetime.date(2017, 8, 29)
-	end_date = datetime.date(2017, 8, 30)
+	start_date = datetime.date(2017, 9, 30)
+	end_date = datetime.date(2017, 10, 1)
 	envcan_observations = get_parsed_observations('envcan', date_to_em(start_date), date_to_em(end_date))
 	navcan_observations = get_parsed_observations('navcan', date_to_em(start_date), date_to_em(end_date))
 
