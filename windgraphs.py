@@ -747,7 +747,7 @@ def sailflow_parse_web_response(web_response_, channel_, time_retrieved_em_):
 # This function returns data in miles per hour.
 def sailflow_get_web_response(model_):
 	model_url_id = {'sf_q': '-1', 'sf_nam12': '1', 'sf_gfs': '2', 'sf_nam3': '161', 'sf_cmc': '78'}[model_]
-	url_template = 'http://api.weatherflow.com/wxengine/rest/model/getModelDataBySpot?callback=jQuery17206727484519083629_%s&units_wind=mph&units_temp=f&units_distance=mi&spot_id=826&model_id=%s&wf_token=62b16fa1f351b2ab3fd99ccd1d0dd11e&_=%s'
+	url_template = 'http://api.weatherflow.com/wxengine/rest/model/getModelDataBySpot?callback=jQuery17206727484519083629_%s&units_wind=mph&units_temp=f&units_distance=mi&spot_id=826&model_id=%s&wf_token=bae95fc3c40710aa98a066430e3bdbec&_=%s'
 	url = url_template % (now_em(), model_url_id, now_em())
 	r = urllib2.urlopen(url).read()
 	return r
