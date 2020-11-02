@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/cygdrive/c/Python27/python.exe
 
 import sys, datetime, os, json, time, traceback
 import windgraphs

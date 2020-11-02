@@ -4,7 +4,9 @@ import sys, urllib2, json, pprint, re, datetime, os, threading, traceback, io, m
 from xml.etree import ElementTree
 import xml.dom.minidom, unittest
 import dateutil.parser, dateutil.tz
-import BeautifulSoup, psycopg2, pytz
+#import BeautifulSoup
+from bs4 import BeautifulSoup
+import psycopg2, pytz
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.dates
@@ -274,6 +276,7 @@ def windfinder_parse_web_response_by_lines(web_response_str_, parsed_channel_, t
 	Return a list of Forecast objects. 
 	The windfinder regular forecast and superforecast have different URLs but use the same HTML format. 
 	"""
+	print web_response_str_ # tdr 
 	lines = web_response_str_.splitlines()
 	r = []
 	linei = 0

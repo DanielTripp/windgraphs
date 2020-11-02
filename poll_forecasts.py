@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/cygdrive/c/Python27/python.exe
 
 import sys, os, argparse, time
 from dtpythonutil.misc import *
